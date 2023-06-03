@@ -22,3 +22,4 @@
 	  * [ ] Add `Self::rule()` method
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
+* [ ] Add a way to change rules
