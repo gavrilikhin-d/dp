@@ -1,2 +1,2 @@
 # dp
-Dynamic parser with extensible PEG grammar
+**D**ynamic **P**arser with extensible PEG grammar. Reads as *deep*
