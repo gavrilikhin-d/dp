@@ -17,11 +17,11 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    action::{reference, ret, Expression},
+    action::{reference, ret},
     bootstrap::rules::Alternatives,
     errors::Expected,
     parsers::{ParseResult, Parser},
-    rule_ref, Context, ParseTreeNode, Rule, Token,
+    rule_ref, Context, Expression, ParseTreeNode, Rule, Token,
 };
 
 /// Possible patterns

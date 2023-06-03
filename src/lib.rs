@@ -19,3 +19,6 @@ pub use context::*;
 pub mod errors;
 
 pub mod bootstrap;
+
+pub mod expressions;
+pub use expressions::Expression;

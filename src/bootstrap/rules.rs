@@ -9,7 +9,7 @@ use crate::{
     action::{merge, reference, ret},
     alts,
     patterns::{self, separated, transparent, Sequence},
-    rule_ref, seq, Rule,
+    rule_ref, seq, Expression, Rule,
 };
 
 macro_rules! rule {
@@ -216,63 +216,6 @@ fn initializer() {
     let mut context = Context::default();
     let r = Initializer::rule();
     assert_eq!(r.parse("a: 1", &mut context).ast, json!({"a": 1}));
-}
-
-rule!(
-    Cast,
-    seq!(
-        ("expr", alts!(rule_ref!(Variable), rule_ref!(Value))),
-        "as",
-        ("ty", rule_ref!(Type))
-    )
-);
-#[test]
-fn cast_() {
-    let mut context = Context::default();
-    let r = Cast::rule();
-    assert_eq!(
-        r.parse("1 as Integer", &mut context).ast,
-        json!({
-            "Cast": {
-                "ty": "Integer",
-                "expr": 1
-            }
-        })
-    );
-    assert_eq!(
-        r.parse("1 as ty", &mut context).ast,
-        json!({
-            "Cast": {
-                "ty": { "Variable": "ty" },
-                "expr": 1
-            }
-        })
-    );
-}
-
-rule!(
-    Expression,
-    transparent(alts!(
-        rule_ref!(Cast),
-        rule_ref!(Value),
-        rule_ref!(Variable)
-    ))
-);
-#[test]
-fn expression() {
-    let mut context = Context::default();
-    let r = Expression::rule();
-    assert_eq!(r.parse("1", &mut context).ast, json!(1));
-    assert_eq!(r.parse("var", &mut context).ast, json!({"Variable": "var"}));
-    assert_eq!(
-        r.parse("1 as Integer", &mut context).ast,
-        json!({
-            "Cast": {
-                "ty": "Integer",
-                "expr": 1
-            }
-        })
-    );
 }
 
 rule!(

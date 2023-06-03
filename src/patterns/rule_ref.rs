@@ -21,8 +21,8 @@ impl From<&str> for RuleReference {
 
 #[macro_export]
 macro_rules! rule_ref {
-    ($rule: ident) => {
-        crate::Pattern::RuleReference(Box::new($rule::rule().into()))
+    ($rule: ty) => {
+        crate::Pattern::RuleReference(Box::new(<$rule>::rule().into()))
     };
     ($name: expr) => {
         crate::Pattern::RuleReference(Box::new($name.into()))

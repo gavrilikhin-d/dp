@@ -68,9 +68,9 @@ impl Parser for Rule {
 #[cfg(test)]
 mod tests {
     use crate::{
-        action::{reference, ret, throw, Action, Expression},
+        action::{reference, ret, throw, Action},
         patterns::Repeat,
-        rule_ref,
+        rule_ref, Expression,
     };
 
     use super::*;
