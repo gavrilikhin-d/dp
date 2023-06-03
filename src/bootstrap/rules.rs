@@ -8,6 +8,7 @@ use serde_json::json;
 use crate::{
     action::{merge, reference, ret},
     alts,
+    expressions::FieldInitializer,
     patterns::{self, separated, transparent, Sequence},
     rule_ref, seq, Expression, Rule,
 };
@@ -138,11 +139,11 @@ fn ty() {
 rule!(
     Value,
     transparent(alts!(
-        rule_ref!("Distinct"),
+        rule_ref!("DistinctValue"),
         rule_ref!(Char),
         rule_ref!(String),
         rule_ref!(Integer),
-        rule_ref!(Object)
+        rule_ref!("ObjectConstructor")
     ))
 );
 #[test]
@@ -178,7 +179,7 @@ rule!(
     Sequence::new(
         vec![
             '{'.into(),
-            ("initializers", separated(rule_ref!(Initializer), ',')).into(),
+            ("initializers", separated(rule_ref!(FieldInitializer), ',')).into(),
             patterns::Repeat::at_most_once(',').into(),
             '}'.into(),
         ],
@@ -199,23 +200,6 @@ fn non_empty_object() {
         r.parse("{a: 1, b: 2,}", &mut context).ast,
         json!({"a": 1, "b": 2})
     );
-}
-
-rule!(
-    Initializer,
-    seq!(
-        ("name", rule_ref!(Identifier)),
-        ':',
-        ("value", rule_ref!("Expression"))
-        =>
-        ret(reference("value").cast_to(reference("name")))
-    )
-);
-#[test]
-fn initializer() {
-    let mut context = Context::default();
-    let r = Initializer::rule();
-    assert_eq!(r.parse("a: 1", &mut context).ast, json!({"a": 1}));
 }
 
 rule!(

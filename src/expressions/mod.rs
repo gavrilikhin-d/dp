@@ -9,6 +9,9 @@ use crate::{
 mod cast;
 pub use cast::*;
 
+mod object_constructor;
+pub use object_constructor::*;
+
 /// Expression that can be evaluated to a value
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, From)]
 pub enum Expression {
@@ -23,6 +26,8 @@ pub enum Expression {
     Merge(Box<Expression>),
     /// A cast from one type to another
     Cast(Box<Cast>),
+    /// An object constructor
+    ObjectConstructor(ObjectConstructor),
     /// A JSON value
     #[serde(untagged)]
     Value(Value),
@@ -74,6 +79,15 @@ impl Expression {
                 let ty = cast.ty.evaluate(variables)?;
                 Ok(json!({ ty.as_str().unwrap(): value }))
             }
+            Expression::ObjectConstructor(oc) => oc.evaluate(variables),
+        }
+    }
+
+    /// Get the name of the variable, if this expression is a variable
+    pub fn as_variable(&self) -> Option<&str> {
+        match self {
+            Expression::Variable(name) => Some(name),
+            _ => None,
         }
     }
 

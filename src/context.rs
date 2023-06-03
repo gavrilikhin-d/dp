@@ -6,10 +6,10 @@ use crate::{
     action::Action,
     bootstrap::rules::{
         self, Alternatives, AtomicPattern, Char, Distinct, DistinctObject, DistinctValue,
-        Identifier, Initializer, Integer, Named, NonEmptyObject, Object, Regex, Return, RuleName,
-        RuleReference, Text, Throw, Type, Typename, Value, Variable,
+        Identifier, Integer, Named, NonEmptyObject, Object, Regex, Return, RuleName, RuleReference,
+        Text, Throw, Type, Typename, Value, Variable,
     },
-    expressions::Cast,
+    expressions::{Cast, FieldInitializer, ObjectConstructor},
     parsers::ParseResult,
     patterns::{Repeat, Sequence},
     rule_ref, Expression, Pattern, Rule,
@@ -202,12 +202,13 @@ impl Default for Context {
                 Identifier::rule().into(),
                 NonEmptyObject::rule().into(),
                 Object::rule().into(),
+                ObjectConstructor::rule().into(),
                 Type::rule().into(),
                 Typename::rule().into(),
                 Cast::rule().into(),
                 Expression::rule().into(),
                 Value::rule().into(),
-                Initializer::rule().into(),
+                FieldInitializer::rule().into(),
                 RuleWithAction::new(Rule::rule(), |at, mut res, context| {
                     res = transparent_ast(at, res, context);
                     let rule: Rule = serde_json::from_value(res.ast.clone()).unwrap();
@@ -359,10 +360,10 @@ mod test {
     }
 
     #[test]
-    fn initializer() {
+    fn field_initializer() {
         let mut ctx = Context::default();
-        let r = ctx.find_rule("Initializer").unwrap();
-        assert_eq!(r.name, "Initializer");
+        let r = ctx.find_rule("FieldInitializer").unwrap();
+        assert_eq!(r.name, "FieldInitializer");
         assert_eq!(r.parse("x: 'x'", &mut ctx).ast, json!({"x": "x"}));
     }
 

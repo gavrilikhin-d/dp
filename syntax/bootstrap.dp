@@ -24,14 +24,17 @@ Return: <value: Expression> => Return(value)
 Throw: "throw" <error: Expression> => Throw(error)
 
 Distinct: <ty: DistinctObject | DistinctValue> => ty
+ObjectConstructor: <obj: Object | DistinctObject> => obj
 DistinctObject: <ty: Typename> <obj: Object> => obj as ty
 DistinctValue: <ty: Typename> '(' <value: Value> ')' => value as ty
-Object: '{' '}' | '{' Initializer (, Initializer)* ,? '}'
-Initializer: Identifier ':' Expression
+Object: '{' '}' | '{' FieldInitializer (, FieldInitializer)* ,? '}'
+FieldInitializer
+	: <name: Identifier> ':' <value: Expression>  => value as name
+	| <var: Identifier> => Variable(var) as var
 Expression: Cast | Variable | Value
 Typename: <ty: /[A-Z][a-zA-Z0-9]*/> => ty
 Type: <ty: Typename | Variable> => ty
 Cast: <expr: Value | Variable> as <ty: Type>
-Value: Distinct | Object | String | Char | Integer
+Value: DistinctValue | ObjectConstructor | String | Char | Integer
 Variable: Identifier
 Integer: <value: /[0-9]+/> => value

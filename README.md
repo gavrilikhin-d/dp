@@ -3,7 +3,8 @@
 
 # Todo
 * [ ] Remove parse tree
-* [ ] Support `["a", "b", "c"]` syntax
+* [ ] Object constructors (they need to implement serde like objects)
+* [ ] Array constructors
 * [ ] Add a way to obtain syntax information from variable name
 * [ ] Store source code in context
 * [ ] Remove `on_parse` function from rule
