@@ -7,9 +7,6 @@
 * [ ] Add a way to obtain syntax information from variable name
 * [ ] Store source code in context
 * [ ] Remove `on_parse` function from rule
-* [x] Distinct types
-* [x] Write all rules in bootstrap
-* [x] Allow type variables in type cast
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
 * [ ] Change the way rules are added to parsing to be more explicit
@@ -17,8 +14,6 @@
 * [ ] Support left-recursion
 * [ ] Packrat parsing
 * [ ] Add documentation
-* [x] Make its own library
-* [x] Copy rules on reference
 * [ ] Copy rules on reference in code
 * [ ] Add `&Rule` as a way to reference a rule without copying it.
 * [ ] Simplify separated patterns
