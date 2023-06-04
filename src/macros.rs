@@ -24,7 +24,7 @@ macro_rules! text {
 ///
 /// use dp::{rule_ref, rule, Pattern};
 ///
-/// rule!(Rule, "lol");
+/// rule!(Rule: "lol");
 /// assert_eq!(
 /// 	rule_ref!(Rule),
 /// 	Pattern::RuleReference(Box::new(Rule::rule().into()))
@@ -50,12 +50,12 @@ macro_rules! rule_ref {
 ///
 /// use dp::{rule, Rule};
 ///
-/// rule!(X, "lol");
+/// rule!(X: "lol");
 /// assert_eq!(X::rule(), Rule::new("X", "lol"));
 /// ```
 #[macro_export]
 macro_rules! rule {
-    ($name:ident, $pattern:expr) => {
+    ($name:ident : $pattern:expr) => {
         pub struct $name;
 
         impl $name {

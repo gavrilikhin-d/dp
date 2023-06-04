@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn single_unnamed_pattern_not_wrapped() {
-        rule!(Test, r"/[^\s]+/");
+        rule!(Test: r"/[^\s]+/");
 
         let mut context = Context::new();
         assert_eq!(
@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn single_named_pattern_wrapped() {
-        rule!(Test, ("text", r"/[^\s]+/"));
+        rule!(Test: ("text", r"/[^\s]+/"));
 
         let mut context = Context::new();
         assert_eq!(
@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn single_named_pattern_with_action() {
-        rule!(Test, seq!(("text", r"/[^\s]+/") => ret(reference("text"))));
+        rule!(Test: seq!(("text", r"/[^\s]+/") => ret(reference("text"))));
 
         let mut context = Context::new();
         assert_eq!(
@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn sequence_without_named_ignored() {
-        rule!(Test, seq!("a", "b"));
+        rule!(Test: seq!("a", "b"));
 
         let mut context = Context::new();
         assert_eq!(Test::rule().parse("a b", &mut context).ast, json!({}));
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn sequence_with_named_wrapped() {
-        rule!(Test, seq!("a", ("name", "b")));
+        rule!(Test: seq!("a", ("name", "b")));
 
         let mut context = Context::new();
         assert_eq!(

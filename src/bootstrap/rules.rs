@@ -13,7 +13,7 @@ use crate::{
     rule, rule_ref, seq, Expression,
 };
 
-rule!(Char, r"/'.'/");
+rule!(Char: r"/'.'/");
 #[test]
 fn char() {
     let mut context = Context::default();
@@ -21,7 +21,7 @@ fn char() {
     assert_eq!(r.parse("'c'", &mut context).ast, json!('c'));
 }
 
-rule!(Integer, r"/[0-9]+/");
+rule!(Integer: r"/[0-9]+/");
 #[test]
 fn integer() {
     let mut context = Context::default();
@@ -35,7 +35,7 @@ fn integer() {
     );
 }
 
-rule!(String, "/\"([^\"\\\\]|\\.)*\"/");
+rule!(String: "/\"([^\"\\\\]|\\.)*\"/");
 #[test]
 fn string() {
     let mut context = Context::default();
@@ -44,7 +44,7 @@ fn string() {
 }
 
 rule!(
-    Text,
+    Text:
     alts!(rule_ref!(Char), rule_ref!(String), r"/[^\s*+?()|<:>{}=]+/")
 );
 #[test]
@@ -56,7 +56,7 @@ fn text() {
     assert_eq!(r.parse("text", &mut context).ast, json!("text"));
 }
 
-rule!(Regex, r"//[^/]+//");
+rule!(Regex: r"//[^/]+//");
 #[test]
 fn regex() {
     let mut context = Context::default();
@@ -64,7 +64,7 @@ fn regex() {
     assert_eq!(r.parse("/ax?/", &mut context).ast, json!("/ax?/"));
 }
 
-rule!(RuleName, r"/[A-Z][a-zA-Z0-9]*/");
+rule!(RuleName: r"/[A-Z][a-zA-Z0-9]*/");
 #[test]
 fn rule_name() {
     let mut context = Context::default();
@@ -73,7 +73,7 @@ fn rule_name() {
 }
 
 rule!(
-    RuleReference,
+    RuleReference:
     seq!(("name", rule_ref!(RuleName)) => ret(reference("name").cast_to("RuleReference")))
 );
 #[test]
@@ -86,7 +86,7 @@ fn rule_reference() {
     );
 }
 
-rule!(Identifier, r"/[a-z_][a-zA-Z0-9_]*/");
+rule!(Identifier: r"/[a-z_][a-zA-Z0-9_]*/");
 #[test]
 fn identifier() {
     let mut context = Context::default();
@@ -94,7 +94,7 @@ fn identifier() {
     assert_eq!(r.parse("name", &mut context).ast, json!("name"));
 }
 
-rule!(Typename, "/[A-Z][a-zA-Z_0-9]*/");
+rule!(Typename: "/[A-Z][a-zA-Z_0-9]*/");
 #[test]
 fn typename() {
     let mut context = Context::default();
@@ -103,7 +103,7 @@ fn typename() {
 }
 
 rule!(
-    Variable,
+    Variable:
     seq!(("name", rule_ref!(Identifier)) => ret(reference("name").cast_to("Variable")))
 );
 #[test]
@@ -113,7 +113,7 @@ fn variable() {
     assert_eq!(r.parse("var", &mut context).ast, json!({"Variable": "var"}));
 }
 
-rule!(Type, alts!(rule_ref!(Typename), rule_ref!(Variable)));
+rule!(Type: alts!(rule_ref!(Typename), rule_ref!(Variable)));
 #[test]
 fn ty() {
     let mut context = Context::default();
@@ -123,7 +123,7 @@ fn ty() {
 }
 
 rule!(
-    Value,
+    Value:
     alts!(
         rule_ref!("DistinctValue"),
         rule_ref!(Char),
@@ -143,7 +143,7 @@ fn value() {
 }
 
 rule!(
-    Object,
+    Object:
     alts!(vec!['{'.into(), '}'.into()], rule_ref!(NonEmptyObject))
 );
 #[test]
@@ -158,7 +158,7 @@ fn object() {
 }
 
 rule!(
-    NonEmptyObject,
+    NonEmptyObject:
     Sequence::new(
         vec![
             '{'.into(),
@@ -186,7 +186,7 @@ fn non_empty_object() {
 }
 
 rule!(
-    Return,
+    Return:
     seq!(
         ("value", rule_ref!(Expression))
         =>
@@ -206,7 +206,7 @@ fn return_() {
 }
 
 rule!(
-    Throw,
+    Throw:
     seq!(
         "throw",
         ("error", rule_ref!(Expression)) =>
@@ -226,7 +226,7 @@ fn throw() {
 }
 
 rule!(
-    Named,
+    Named:
     seq!(
         "<",
         ("name", rule_ref!(Identifier)),
@@ -251,7 +251,7 @@ fn named() {
 }
 
 rule!(
-    AtomicPattern,
+    AtomicPattern:
     alts!(
         seq!(
             "(",
@@ -290,7 +290,7 @@ fn atomic_pattern() {
 }
 
 rule!(
-    Alternatives,
+    Alternatives:
     transparent(separated(("x", rule_ref!(Sequence)), "|"))
 );
 #[test]
@@ -309,7 +309,7 @@ fn alternatives() {
 }
 
 rule!(
-    DistinctObject,
+    DistinctObject:
     seq!(
         ("ty", rule_ref!(Typename)),
         ("obj", rule_ref!(Object))
@@ -330,7 +330,7 @@ fn distinct_object() {
 }
 
 rule!(
-    DistinctValue,
+    DistinctValue:
     seq!(
         ("ty", rule_ref!(Typename)),
         '(',
@@ -387,7 +387,7 @@ fn distinct_value() {
 }
 
 rule!(
-    Distinct,
+    Distinct:
     alts!(rule_ref!(DistinctObject), rule_ref!(DistinctValue))
 );
 #[test]
