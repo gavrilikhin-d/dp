@@ -19,16 +19,6 @@ impl From<&str> for RuleReference {
     }
 }
 
-#[macro_export]
-macro_rules! rule_ref {
-    ($rule: ty) => {
-        crate::Pattern::RuleReference(Box::new(<$rule>::rule().into()))
-    };
-    ($name: expr) => {
-        crate::Pattern::RuleReference(Box::new($name.into()))
-    };
-}
-
 impl Parser for RuleReference {
     fn parse_at<'s>(
         &self,
@@ -49,7 +39,7 @@ impl Parser for RuleReference {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bootstrap::rules::Text, Context, Pattern};
+    use crate::{bootstrap::rules::Text, rule_ref, Context, Pattern};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

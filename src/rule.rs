@@ -67,27 +67,13 @@ impl Parser for Rule {
     }
 }
 
-#[macro_export]
-macro_rules! rule {
-    ($name:ident, $pattern:expr) => {
-        pub struct $name;
-
-        impl $name {
-            /// Get rule with this name
-            pub fn rule() -> Rule {
-                Rule::new(stringify!($name), $pattern)
-            }
-        }
-    };
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{
         action::{reference, ret, throw},
         obj,
         patterns::Repeat,
-        rule_ref,
+        rule, rule_ref,
     };
 
     use super::*;

@@ -108,13 +108,24 @@ impl Parser for Sequence {
 }
 
 /// Macro to simplify creation of sequences
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! seq {
+	// Hide distracting implementation details from the generated rustdoc.
+	($($tokens:tt)+) => {
+		seq_internal!($($tokens)+)
+	};
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! seq_internal {
 	($expr: expr) => {
 		crate::Pattern::from($expr)
 	};
 	($($expr: expr),+) => {
-		vec![$(crate::Pattern::from($expr)),+]
+		crate::patterns::Sequence::from(
+			vec![$(crate::Pattern::from($expr)),+]
+		)
 	};
 	($($expr: expr),+ => $action: expr) => {
 		crate::patterns::Sequence::new(

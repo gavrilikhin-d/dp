@@ -10,7 +10,7 @@ use crate::{
     alts,
     expressions::FieldInitializer,
     patterns::{self, separated, transparent, Sequence},
-    rule, rule_ref, seq, Expression, Rule,
+    rule, rule_ref, seq, Expression,
 };
 
 rule!(Char, r"/'.'/");
