@@ -16,9 +16,9 @@ pub struct Cast {
 }
 rule!(
     Cast:
-    ("expr", alts!(rule_ref!(Variable), rule_ref!(Value))),
-    "as",
-    ("ty", rule_ref!(Type))
+        {expr: alts!(rule_ref!(Variable), rule_ref!(Value))}
+        as
+        {ty: rule_ref!(Type)}
 );
 
 #[cfg(test)]

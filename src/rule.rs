@@ -23,9 +23,9 @@ pub struct Rule {
 }
 rule!(
     Rule:
-        ("name", rule_ref!(RuleName)),
-        ":",
-        ("pattern", rule_ref!(Pattern))
+        {name: rule_ref!(RuleName)}
+        :
+        {pattern: rule_ref!(Pattern)}
 );
 
 impl Rule {
@@ -70,7 +70,7 @@ impl Parser for Rule {
 
 #[cfg(test)]
 mod tests {
-    use crate::{expr, obj, patterns::Repeat, rule, rule_ref};
+    use crate::{expr, obj, patterns::Repeat, rule};
 
     use super::*;
 
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn single_named_pattern_wrapped() {
-        rule!(struct Test: ("text", r"/[^\s]+/"));
+        rule!(struct Test: {text: r"/[^\s]+/"});
 
         let mut context = Context::new();
         assert_eq!(
@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn single_named_pattern_with_action() {
-        rule!(struct Test: ("text", r"/[^\s]+/") => text);
+        rule!(struct Test: {text: r"/[^\s]+/"} => text);
 
         let mut context = Context::new();
         assert_eq!(
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn sequence_without_named_ignored() {
-        rule!(struct Test: "a", "b");
+        rule!(struct Test: a b);
 
         let mut context = Context::new();
         assert_eq!(Test::rule().parse("a b", &mut context).ast, json!({}));
@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn sequence_with_named_wrapped() {
-        rule!(struct Test: "a", ("name", "b"));
+        rule!(struct Test: a {name: "b"});
 
         let mut context = Context::new();
         assert_eq!(
@@ -289,7 +289,7 @@ mod tests {
         );
 
         let rule = context.find_rule("List").unwrap();
-        rule!(struct List: "(", ("letters", Repeat::zero_or_more("x")), ")" => letters);
+        rule!(struct List: '(' {letters: Repeat::zero_or_more("x")} ')' => letters);
         assert_eq!(rule.as_ref(), &List::rule());
         assert_eq!(rule.parse("(x x)", &mut context).ast, json!(["x", "x"]))
     }
@@ -380,7 +380,7 @@ mod tests {
         let rule = context.find_rule("X").unwrap();
         rule!(
             struct X:
-            ("ty", rule_ref!("Type")) =>
+            {ty: rule_ref!("Type")} =>
             obj! {}.cast_to(expr!(ty))
         );
         assert_eq!(rule.as_ref(), &X::rule(),);

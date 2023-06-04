@@ -44,8 +44,9 @@ fn string() {
 }
 
 rule!(
-    struct Text:
-    alts!(rule_ref!(Char), rule_ref!(String), r"/[^\s*+?()|<:>{}=]+/")
+    struct Text: {
+        alts!(rule_ref!(Char), rule_ref!(String), r"/[^\s*+?()|<:>{}=]+/")
+    }
 );
 #[test]
 fn text() {
@@ -74,7 +75,7 @@ fn rule_name() {
 
 rule!(
     struct RuleReference:
-    ("name", rule_ref!(RuleName)) => expr!(name).cast_to("RuleReference")
+    {name: rule_ref!(RuleName)} => expr!(name).cast_to("RuleReference")
 );
 #[test]
 fn rule_reference() {
@@ -104,7 +105,7 @@ fn typename() {
 
 rule!(
     struct Variable:
-    ("name", rule_ref!(Identifier)) => expr!(name).cast_to("Variable")
+    {name: rule_ref!(Identifier)} => expr!(name).cast_to("Variable")
 );
 #[test]
 fn variable() {
@@ -113,7 +114,7 @@ fn variable() {
     assert_eq!(r.parse("var", &mut context).ast, json!({"Variable": "var"}));
 }
 
-rule!(struct Type: alts!(rule_ref!(Typename), rule_ref!(Variable)));
+rule!(struct Type: { alts!(rule_ref!(Typename), rule_ref!(Variable))});
 #[test]
 fn ty() {
     let mut context = Context::default();
@@ -123,14 +124,15 @@ fn ty() {
 }
 
 rule!(
-    struct Value:
-    alts!(
-        rule_ref!("DistinctValue"),
-        rule_ref!(Char),
-        rule_ref!(String),
-        rule_ref!(Integer),
-        rule_ref!("ObjectConstructor")
-    )
+    struct Value: {
+        alts!(
+            rule_ref!("DistinctValue"),
+            rule_ref!(Char),
+            rule_ref!(String),
+            rule_ref!(Integer),
+            rule_ref!("ObjectConstructor")
+        )
+    }
 );
 #[test]
 fn value() {
@@ -143,8 +145,9 @@ fn value() {
 }
 
 rule!(
-    struct Object:
-    alts!(vec!['{'.into(), '}'.into()], rule_ref!(NonEmptyObject))
+    struct Object: {
+        alts!(vec!['{'.into(), '}'.into()], rule_ref!(NonEmptyObject))
+    }
 );
 #[test]
 fn object() {
@@ -159,9 +162,9 @@ fn object() {
 
 rule!(
     struct NonEmptyObject:
-    '{',
-    ("initializers", separated(rule_ref!(FieldInitializer), ',')),
-    patterns::Repeat::at_most_once(','),
+    '{'
+    {initializers: separated(rule_ref!(FieldInitializer), ',')}
+    {patterns::Repeat::at_most_once(',')}
     '}'
     => merge(expr!(initializers))
 );
@@ -183,7 +186,7 @@ fn non_empty_object() {
 
 rule!(
     struct Return:
-    ("value", rule_ref!(Expression))
+    {value: rule_ref!(Expression)}
     => expr!(value).cast_to("Return")
 );
 #[test]
@@ -200,9 +203,9 @@ fn return_() {
 
 rule!(
     struct Throw:
-    "throw",
-    ("error", rule_ref!(Expression)) =>
-    expr!(error).cast_to("Throw")
+        throw {error: rule_ref!(Expression)}
+        =>
+        expr!(error).cast_to("Throw")
 );
 #[test]
 fn throw() {
@@ -217,19 +220,20 @@ fn throw() {
 }
 
 rule!(
-    struct AtomicPattern:
-    alts!(
-        seq!(
-            "(",
-            ("pattern", rule_ref!("Pattern")),
-            ")"
-            => pattern
-        ),
-        rule_ref!(Named),
-        rule_ref!(RuleReference),
-        rule_ref!(Regex),
-        rule_ref!(Text)
-    )
+    struct AtomicPattern: {
+        alts!(
+            seq!(
+                '('
+                {pattern: rule_ref!("Pattern")}
+                ')'
+                => pattern
+            ),
+            rule_ref!(Named),
+            rule_ref!(RuleReference),
+            rule_ref!(Regex),
+            rule_ref!(Text)
+        )
+    }
 );
 #[test]
 fn atomic_pattern() {
@@ -256,8 +260,9 @@ fn atomic_pattern() {
 }
 
 rule!(
-    struct Alternatives:
-    transparent(separated(("x", rule_ref!(Sequence)), "|"))
+    struct Alternatives: {
+        transparent(separated(("x", rule_ref!(Sequence)), "|"))
+    }
 );
 #[test]
 fn alternatives() {
@@ -276,8 +281,8 @@ fn alternatives() {
 
 rule!(
     struct DistinctObject:
-    ("ty", rule_ref!(Typename)),
-    ("obj", rule_ref!(Object))
+        {ty: rule_ref!(Typename)}
+        {obj: rule_ref!(Object)}
     => expr!(obj).cast_to(expr!(ty))
 );
 #[test]
@@ -294,9 +299,9 @@ fn distinct_object() {
 
 rule!(
     struct DistinctValue:
-    ("ty", rule_ref!(Typename)),
-    '(',
-    ("value", rule_ref!(Value)),
+    {ty: rule_ref!(Typename)}
+    '('
+    {value: rule_ref!(Value)}
     ')'
     => expr!(value).cast_to(expr!(ty))
 );
@@ -347,8 +352,12 @@ fn distinct_value() {
 }
 
 rule!(
-    struct Distinct:
-    alts!(rule_ref!(DistinctObject), rule_ref!(DistinctValue))
+    struct Distinct: {
+        alts!(
+            rule_ref!(DistinctObject),
+            rule_ref!(DistinctValue)
+        )
+    }
 );
 #[test]
 fn distinct() {

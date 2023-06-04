@@ -45,22 +45,81 @@ macro_rules! rule_ref {
 }
 
 /// Macro to simplify creation of sequences
+/// ```
+/// use dp::{seq, action, patterns::Sequence};
+///
+/// assert_eq!(
+/// 	seq!(a b c),
+///     vec![
+/// 		"a".into(), "b".into(), "c".into()
+/// 	].into()
+/// );
+/// assert_eq!(
+///     seq!('(' {value: "x"} ')'),
+///     vec![
+///       '('.into(),
+///        ("value", "x").into(),
+///        ')'.into()
+///     ].into()
+/// );
+/// assert_eq!(
+///     seq!(a => 1),
+///     Sequence::new(
+///         vec!["a".into()].into(),
+///         action!(1)
+///     )
+/// )
+/// ```
 #[macro_export]
 macro_rules! seq {
-	($expr: expr) => {
-		$crate::Pattern::from($expr)
-	};
-	($($expr: expr),+) => {
-		$crate::patterns::Sequence::from(
-			vec![$($crate::Pattern::from($expr)),+]
+	(@ [$($processed:tt)*] {$name:ident : $($pattern:tt)+} $($tail:tt)*) => {
+		$crate::seq!(
+			@
+			[$($processed)* $crate::Pattern::from($crate::named!($name: $($pattern)+)),]
+			$($tail)*
 		)
 	};
-	($($expr: expr),+ => $($action:tt)+) => {
+
+	(@ [$($processed:tt)*] {$rust:expr} $($tail:tt)*) => {
+		$crate::seq!(
+			@
+			[$($processed)* $crate::Pattern::from($rust),]
+			$($tail)*
+		)
+	};
+
+	(@ [$($processed:tt)*] $text:literal $($tail:tt)*) => {
+		$crate::seq!(
+			@
+			[$($processed)* $crate::Pattern::from($text),]
+			$($tail)*
+		)
+	};
+
+	(@ [$($processed:tt)*] => $($action:tt)+) => {
 		$crate::patterns::Sequence::new(
-			vec![$($crate::Pattern::from($expr)),+],
+			vec![$($processed)*],
 			$crate::action!($($action)+)
 		)
 	};
+
+	(@ [$($processed:tt)*] $text:tt $($tail:tt)*) => {
+		$crate::seq!(
+			@
+			[$($processed)* $crate::Pattern::from(stringify!($text)),]
+			$($tail)*
+		)
+	};
+
+	(@ [$($processed:tt)*]) => {
+		$crate::patterns::Sequence::from(
+			vec![$($processed)*]
+		)
+	};
+
+	($($tokens:tt)+) => {
+		$crate::seq!(@ [] $($tokens)+)
+	}
 }
 
 /// Macro to simplify creation of action
@@ -144,5 +203,13 @@ macro_rules! obj {
             ty: Some(stringify!($ty).to_string()),
             initializers: vec![$(obj!(@field $name $(: $value)?)),*],
         }
+    };
+}
+
+/// Macro to simplify creation of [`Named`] patterns
+#[macro_export]
+macro_rules! named {
+    ($name:ident : $expr:expr) => {
+        $crate::patterns::Named::from((stringify!($name), $expr))
     };
 }

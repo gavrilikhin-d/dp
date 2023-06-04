@@ -22,8 +22,8 @@ pub struct Repeat {
 }
 rule!(
     Repeat:
-        ("pattern", rule_ref!(AtomicPattern)),
-        ("op", Repeat::at_most_once("/[*+?]/"))
+        {pattern: rule_ref!(AtomicPattern)}
+        {op: Repeat::at_most_once("/[*+?]/")}
 );
 
 impl Repeat {

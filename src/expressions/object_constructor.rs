@@ -19,22 +19,23 @@ pub struct FieldInitializer {
     pub value: Expression,
 }
 rule!(
-    FieldInitializer:
-    transparent(alts!(
-        seq!(
-            ("name", rule_ref!(Identifier)),
-            ':',
-            ("value", rule_ref!("Expression"))
-            => expr!(value).cast_to(expr!(name))
-        ),
-        seq!(
-            ("var", rule_ref!(Identifier))
-            =>
-            expr!(var)
-                .cast_to("Variable")
-                .cast_to(expr!(var))
-        )
-    ))
+    FieldInitializer: {
+        transparent(alts!(
+            seq!(
+                {name: rule_ref!(Identifier)}
+                :
+                {value: rule_ref!("Expression")}
+                => expr!(value).cast_to(expr!(name))
+            ),
+            seq!(
+                {var: rule_ref!(Identifier)}
+                =>
+                expr!(var)
+                    .cast_to("Variable")
+                    .cast_to(expr!(var))
+            )
+        ))
+    }
 );
 
 /// Constructor for an object
@@ -46,11 +47,12 @@ pub struct ObjectConstructor {
     pub initializers: Vec<FieldInitializer>,
 }
 rule!(
-    ObjectConstructor:
-    alts!(
-        rule_ref!(DistinctObject),
-        rule_ref!(Object)
-    )
+    ObjectConstructor: {
+        alts!(
+            rule_ref!(DistinctObject),
+            rule_ref!(Object)
+        )
+    }
 );
 
 impl ObjectConstructor {

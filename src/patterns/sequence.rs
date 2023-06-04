@@ -25,12 +25,14 @@ pub struct Sequence {
 }
 rule!(
     Sequence:
-    transparent(
-        seq!(
-            ("patterns", Repeat::once_or_more(rule_ref!(Repeat))),
-            ("action", Repeat::at_most_once(rule_ref!(Action)))
+    {
+        transparent(
+            seq!(
+                {patterns: Repeat::once_or_more(rule_ref!(Repeat))}
+                {action: Repeat::at_most_once(rule_ref!(Action))}
+            )
         )
-    )
+    }
 );
 
 impl Sequence {
@@ -50,8 +52,9 @@ impl Sequence {
 
 /// Returns sequence like this: <x: Pattern> => x
 pub fn transparent(pattern: impl Into<Pattern>) -> Sequence {
+    let pattern = pattern.into();
     seq!(
-        ("x", pattern)
+        {x: pattern}
         => x
     )
 }
@@ -158,8 +161,8 @@ mod test {
     fn action() {
         let mut context = Context::default();
         let p = seq!(
-            '(',
-            ("pattern", "/[A-z][a-z]*/"),
+            '('
+            {pattern: "/[A-z][a-z]*/"}
             ')'
             => pattern
         );
@@ -171,10 +174,9 @@ mod test {
     fn error() {
         let mut context = Context::default();
         let p = alts!(
-            seq!('(', "/[A-z][a-z]*/", ')'),
+            seq!('(' "/[A-z][a-z]*/" ')'),
             seq!(
-                '(',
-                "/[A-z][a-z]*/"
+                '(' "/[A-z][a-z]*/"
                 => throw obj!(
                     Expected {
                         expected: ')',

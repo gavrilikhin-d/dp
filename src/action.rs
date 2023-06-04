@@ -18,8 +18,8 @@ pub enum Action {
 }
 rule!(
     Action:
-        "=>",
-        ("value", alts!(rule_ref!(Throw), rule_ref!(Return)))
+        "=>"
+        {value: alts!(rule_ref!(Throw), rule_ref!(Return))}
         => value
 );
 

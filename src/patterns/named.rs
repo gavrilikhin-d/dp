@@ -21,11 +21,11 @@ pub struct Named {
 
 rule!(
     Named:
-        "<",
-        ("name", rule_ref!(Identifier)),
-        ":",
-        ("pattern", rule_ref!("Pattern")),
-        ">"
+        <
+        {name: rule_ref!(Identifier)}
+        :
+        {pattern: rule_ref!("Pattern")}
+        >
 );
 
 #[test]

@@ -30,6 +30,7 @@ pub enum Pattern {
     /// Reference to another rule
     RuleReference(Box<RuleReference>),
     /// Sequence of patterns
+    #[from(ignore)]
     Sequence(Sequence),
     /// Match specific text
     #[from(ignore)]
@@ -45,23 +46,33 @@ pub enum Pattern {
     /// Adds name to the ast of pattern
     Named(Named),
 }
-rule!(Pattern: rule_ref!(Alternatives));
+rule!(Pattern: { rule_ref!(Alternatives) });
+
+impl From<Sequence> for Pattern {
+    fn from(value: Sequence) -> Self {
+        if value.action.is_none() && value.patterns.len() == 1 {
+            value.patterns.into_iter().next().unwrap()
+        } else {
+            Pattern::Sequence(value)
+        }
+    }
+}
 
 /// <head: Pattern> <tail: (Separator (<value: Pattern> => value))*> => [head, ...tail]
 pub fn separated(pattern: impl Into<Pattern>, separator: impl Into<Pattern>) -> Pattern {
     let pattern = pattern.into();
     seq!(
-        ("head", pattern.clone()),
-        (
-            "tail",
+        {head: pattern.clone()}
+        {
+            tail:
             Repeat::zero_or_more(
                 seq!(
-                    separator.into(),
-                    ("value", pattern.clone())
+                    {separator.into()}
+                    {value: pattern.clone()}
                     => value
                 )
             )
-        )
+        }
         =>
         Expression::Flatten(vec![
             expr!(head),

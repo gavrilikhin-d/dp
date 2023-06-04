@@ -32,12 +32,13 @@ pub enum Expression {
     Value(Value),
 }
 rule!(
-    Expression:
-    alts!(
-        rule_ref!(Cast),
-        rule_ref!(crate::bootstrap::rules::Value),
-        rule_ref!(Variable)
-    )
+    Expression: {
+        alts!(
+            rule_ref!(Cast),
+            rule_ref!(crate::bootstrap::rules::Value),
+            rule_ref!(Variable)
+        )
+    }
 );
 
 impl From<char> for Expression {
