@@ -147,39 +147,10 @@ impl<'de> Deserialize<'de> for ObjectConstructor {
     }
 }
 
-#[macro_export]
-macro_rules! obj {
-    (@field $name:ident) => {
-        crate::expressions::FieldInitializer {
-            name: None,
-            value: reference(stringify!($name)),
-        }
-    };
-    (@field $name:ident : $value:expr ) => {
-        crate::expressions::FieldInitializer {
-            name: Some(stringify!($name).to_string()),
-            value: $value.into(),
-        }
-    };
-
-    {$($name:ident $(: $value:expr)?),*} => {
-        crate::expressions::ObjectConstructor {
-            ty: None,
-            initializers: vec![$(obj!(@field $name $(: $value)?)),*],
-        }
-    };
-    ($ty:ident { $($name:ident $(: $value:expr)?),* }) => {
-        crate::expressions::ObjectConstructor {
-            ty: Some(stringify!($ty).to_string()),
-            initializers: vec![$(obj!(@field $name $(: $value)?)),*],
-        }
-    };
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{parsers::Parser, Context, UnderlyingRule};
+    use crate::{obj, parsers::Parser, Context, UnderlyingRule};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
