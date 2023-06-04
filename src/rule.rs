@@ -4,7 +4,7 @@ use serde_json::json;
 use crate::{
     bootstrap::rules::RuleName,
     parsers::{ParseResult, Parser},
-    rule, rule_ref, seq, Context, ParseTree, Pattern,
+    rule, rule_ref, Context, ParseTree, Pattern,
 };
 
 /// Trait for types that may be converted to rule
@@ -23,11 +23,9 @@ pub struct Rule {
 }
 rule!(
     Rule:
-    seq!(
         ("name", rule_ref!(RuleName)),
         ":",
         ("pattern", rule_ref!(Pattern))
-    )
 );
 
 impl Rule {
@@ -110,7 +108,7 @@ mod tests {
 
     #[test]
     fn single_named_pattern_with_action() {
-        rule!(struct Test: seq!(("text", r"/[^\s]+/") => text));
+        rule!(struct Test: ("text", r"/[^\s]+/") => text);
 
         let mut context = Context::new();
         assert_eq!(
@@ -125,7 +123,7 @@ mod tests {
 
     #[test]
     fn sequence_without_named_ignored() {
-        rule!(struct Test: seq!("a", "b"));
+        rule!(struct Test: "a", "b");
 
         let mut context = Context::new();
         assert_eq!(Test::rule().parse("a b", &mut context).ast, json!({}));
@@ -133,7 +131,7 @@ mod tests {
 
     #[test]
     fn sequence_with_named_wrapped() {
-        rule!(struct Test: seq!("a", ("name", "b")));
+        rule!(struct Test: "a", ("name", "b"));
 
         let mut context = Context::new();
         assert_eq!(
@@ -291,18 +289,8 @@ mod tests {
         );
 
         let rule = context.find_rule("List").unwrap();
-        assert_eq!(
-            rule.as_ref(),
-            &Rule::new(
-                "List",
-                seq!(
-                    '(',
-                    ("letters", Repeat::zero_or_more("x")),
-                    ')'
-                     => letters
-                )
-            )
-        );
+        rule!(struct List: "(", ("letters", Repeat::zero_or_more("x")), ")" => letters);
+        assert_eq!(rule.as_ref(), &List::rule());
         assert_eq!(rule.parse("(x x)", &mut context).ast, json!(["x", "x"]))
     }
 
@@ -340,15 +328,15 @@ mod tests {
         );
 
         let rule = context.find_rule("List").unwrap();
-        assert_eq!(
-            rule.as_ref(),
-            &Rule::new(
-                "List",
-                seq!(
-                    '(' => throw obj!(CustomError { message: "expected closing ')'" })
-                )
+        rule!(
+            struct List:
+            "(" => throw obj!(
+                CustomError {
+                    message: "expected closing ')'"
+                }
             )
         );
+        assert_eq!(rule.as_ref(), &List::rule());
         assert_eq!(rule.parse("(", &mut context).ast, json!(null))
     }
 
@@ -390,16 +378,12 @@ mod tests {
         );
 
         let rule = context.find_rule("X").unwrap();
-        assert_eq!(
-            rule.as_ref(),
-            &Rule::new(
-                "X",
-                seq!(
-                    ("ty", rule_ref!("Type")) =>
-                    obj! {}.cast_to(expr!(ty))
-                )
-            )
+        rule!(
+            struct X:
+            ("ty", rule_ref!("Type")) =>
+            obj! {}.cast_to(expr!(ty))
         );
+        assert_eq!(rule.as_ref(), &X::rule(),);
         assert_eq!(
             rule.parse("Person", &mut context).ast,
             json!({"Person": {}})

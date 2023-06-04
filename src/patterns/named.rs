@@ -5,7 +5,7 @@ use serde_json::json;
 use crate::{
     bootstrap::rules::Identifier,
     parsers::{ParseResult, Parser},
-    rule, seq, Context, Pattern,
+    rule, Context, Pattern,
 };
 
 use super::rule_ref;
@@ -21,13 +21,11 @@ pub struct Named {
 
 rule!(
     Named:
-    seq!(
         "<",
         ("name", rule_ref!(Identifier)),
         ":",
         ("pattern", rule_ref!("Pattern")),
         ">"
-    )
 );
 
 #[test]

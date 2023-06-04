@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     alts,
     bootstrap::rules::{Type, Value, Variable},
-    rule, rule_ref, seq, Expression,
+    rule, rule_ref, Expression,
 };
 
 /// Cast expression to type
@@ -16,11 +16,9 @@ pub struct Cast {
 }
 rule!(
     Cast:
-    seq!(
-        ("expr", alts!(rule_ref!(Variable), rule_ref!(Value))),
-        "as",
-        ("ty", rule_ref!(Type))
-    )
+    ("expr", alts!(rule_ref!(Variable), rule_ref!(Value))),
+    "as",
+    ("ty", rule_ref!(Type))
 );
 
 #[cfg(test)]

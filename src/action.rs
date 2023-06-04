@@ -5,7 +5,7 @@ use crate::{
     alts,
     bootstrap::rules::{Return, Throw},
     errors::Error,
-    rule, rule_ref, seq, Expression,
+    rule, rule_ref, Expression,
 };
 
 /// Action to do on AST
@@ -18,11 +18,9 @@ pub enum Action {
 }
 rule!(
     Action:
-    seq!(
         "=>",
         ("value", alts!(rule_ref!(Throw), rule_ref!(Return)))
         => value
-    )
 );
 
 impl Action {

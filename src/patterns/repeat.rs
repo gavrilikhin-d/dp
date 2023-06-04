@@ -4,7 +4,7 @@ use serde_json::json;
 use crate::{
     bootstrap::rules::AtomicPattern,
     parsers::{ParseResult, Parser},
-    rule, rule_ref, seq, Context, ParseTree,
+    rule, rule_ref, Context, ParseTree,
 };
 
 use super::Pattern;
@@ -22,10 +22,8 @@ pub struct Repeat {
 }
 rule!(
     Repeat:
-    seq!(
         ("pattern", rule_ref!(AtomicPattern)),
         ("op", Repeat::at_most_once("/[*+?]/"))
-    )
 );
 
 impl Repeat {

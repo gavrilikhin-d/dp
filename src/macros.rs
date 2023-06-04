@@ -96,15 +96,15 @@ macro_rules! expr {
 /// ```
 #[macro_export]
 macro_rules! rule {
-    (struct $name:ident : $pattern:expr) => {
+    (struct $name:ident : $($pattern:tt)+) => {
         pub struct $name;
 
-        rule!($name : $pattern);
+        rule!($name : $($pattern)+);
     };
-    ($name:ty : $pattern:expr) => {
+    ($name:ty : $($pattern:tt)+) => {
         impl $crate::UnderlyingRule for $name {
             fn rule() -> $crate::Rule {
-                $crate::Rule::new(stringify!($name), $pattern)
+                $crate::Rule::new(stringify!($name), $crate::seq!($($pattern)+))
             }
         }
     };

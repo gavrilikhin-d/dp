@@ -74,7 +74,7 @@ fn rule_name() {
 
 rule!(
     struct RuleReference:
-    seq!(("name", rule_ref!(RuleName)) => expr!(name).cast_to("RuleReference"))
+    ("name", rule_ref!(RuleName)) => expr!(name).cast_to("RuleReference")
 );
 #[test]
 fn rule_reference() {
@@ -104,7 +104,7 @@ fn typename() {
 
 rule!(
     struct Variable:
-    seq!(("name", rule_ref!(Identifier)) => expr!(name).cast_to("Variable"))
+    ("name", rule_ref!(Identifier)) => expr!(name).cast_to("Variable")
 );
 #[test]
 fn variable() {
@@ -159,13 +159,11 @@ fn object() {
 
 rule!(
     struct NonEmptyObject:
-    seq!(
-        '{',
-        ("initializers", separated(rule_ref!(FieldInitializer), ',')),
-        patterns::Repeat::at_most_once(','),
-        '}'
-        => merge(expr!(initializers))
-    )
+    '{',
+    ("initializers", separated(rule_ref!(FieldInitializer), ',')),
+    patterns::Repeat::at_most_once(','),
+    '}'
+    => merge(expr!(initializers))
 );
 #[test]
 fn non_empty_object() {
@@ -185,10 +183,8 @@ fn non_empty_object() {
 
 rule!(
     struct Return:
-    seq!(
-        ("value", rule_ref!(Expression))
-        => expr!(value).cast_to("Return")
-    )
+    ("value", rule_ref!(Expression))
+    => expr!(value).cast_to("Return")
 );
 #[test]
 fn return_() {
@@ -204,11 +200,9 @@ fn return_() {
 
 rule!(
     struct Throw:
-    seq!(
-        "throw",
-        ("error", rule_ref!(Expression)) =>
-        expr!(error).cast_to("Throw")
-    )
+    "throw",
+    ("error", rule_ref!(Expression)) =>
+    expr!(error).cast_to("Throw")
 );
 #[test]
 fn throw() {
@@ -282,11 +276,9 @@ fn alternatives() {
 
 rule!(
     struct DistinctObject:
-    seq!(
-        ("ty", rule_ref!(Typename)),
-        ("obj", rule_ref!(Object))
-        => expr!(obj).cast_to(expr!(ty))
-    )
+    ("ty", rule_ref!(Typename)),
+    ("obj", rule_ref!(Object))
+    => expr!(obj).cast_to(expr!(ty))
 );
 #[test]
 fn distinct_object() {
@@ -302,13 +294,11 @@ fn distinct_object() {
 
 rule!(
     struct DistinctValue:
-    seq!(
-        ("ty", rule_ref!(Typename)),
-        '(',
-        ("value", rule_ref!(Value)),
-        ')'
-        => expr!(value).cast_to(expr!(ty))
-    )
+    ("ty", rule_ref!(Typename)),
+    '(',
+    ("value", rule_ref!(Value)),
+    ')'
+    => expr!(value).cast_to(expr!(ty))
 );
 #[test]
 fn distinct_value() {
