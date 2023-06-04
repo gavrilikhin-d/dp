@@ -76,7 +76,9 @@ impl Expression {
                 Ok(result.into())
             }
             Expression::Variable(name) => {
-                let value = variables.get(name).unwrap();
+                let value = variables
+                    .get(name)
+                    .expect(format!("Variable {:?} not found", name).as_str());
                 Ok(value.clone())
             }
             Expression::Cast(cast) => {
