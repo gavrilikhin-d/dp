@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{
-    action::{reference, Action},
+    action::Action,
     parsers::{ParseResult, Parser},
     rule, rule_ref, seq, Context, ParseTree, Pattern,
 };
@@ -50,9 +50,9 @@ impl Sequence {
 
 /// Returns sequence like this: <x: Pattern> => x
 pub fn transparent(pattern: impl Into<Pattern>) -> Sequence {
-    Sequence::new(
-        vec![("x", pattern.into()).into()],
-        Action::Return(reference("x")),
+    seq!(
+        ("x", pattern)
+        => x
     )
 }
 
@@ -141,11 +141,7 @@ fn sequence() {
 mod test {
     use serde_json::json;
 
-    use crate::{
-        action::{reference, throw, Action},
-        parsers::Parser,
-        Context, Pattern,
-    };
+    use crate::{alts, obj, parsers::Parser, seq, Context};
 
     use super::Sequence;
     use pretty_assertions::assert_eq;
@@ -161,9 +157,11 @@ mod test {
     #[test]
     fn action() {
         let mut context = Context::default();
-        let p = Sequence::new(
-            vec!['('.into(), ("pattern", "/[A-z][a-z]*/").into(), ')'.into()],
-            Action::Return(reference("pattern")),
+        let p = seq!(
+            '(',
+            ("pattern", "/[A-z][a-z]*/"),
+            ')'
+            => pattern
         );
 
         assert_eq!(p.parse("( x )", &mut context).ast, json!("x"));
@@ -172,17 +170,19 @@ mod test {
     #[test]
     fn error() {
         let mut context = Context::default();
-        let p = Pattern::Alternatives(vec![
-            vec!['('.into(), "/[A-z][a-z]*/".into(), ')'.into()].into(),
-            Sequence::new(
-                vec!['('.into(), "/[A-z][a-z]*/".into()],
-                throw(json!({ "Expected" : {
-                    "expected": ")",
-                    "at": 3
-                }})),
+        let p = alts!(
+            seq!('(', "/[A-z][a-z]*/", ')'),
+            seq!(
+                '(',
+                "/[A-z][a-z]*/"
+                => throw obj!(
+                    Expected {
+                        expected: ')',
+                        at: 3
+                    }
+                )
             )
-            .into(),
-        ]);
+        );
 
         assert_eq!(p.parse("( x )", &mut context).ast, json!({}));
 

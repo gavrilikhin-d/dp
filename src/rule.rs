@@ -72,12 +72,7 @@ impl Parser for Rule {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        action::{reference, ret, throw},
-        obj,
-        patterns::Repeat,
-        rule, rule_ref,
-    };
+    use crate::{expr, obj, patterns::Repeat, rule, rule_ref};
 
     use super::*;
 
@@ -115,7 +110,7 @@ mod tests {
 
     #[test]
     fn single_named_pattern_with_action() {
-        rule!(struct Test: seq!(("text", r"/[^\s]+/") => ret(reference("text"))));
+        rule!(struct Test: seq!(("text", r"/[^\s]+/") => text));
 
         let mut context = Context::new();
         assert_eq!(
@@ -304,8 +299,7 @@ mod tests {
                     '(',
                     ("letters", Repeat::zero_or_more("x")),
                     ')'
-                     =>
-                    ret(reference("letters"))
+                     => letters
                 )
             )
         );
@@ -351,9 +345,7 @@ mod tests {
             &Rule::new(
                 "List",
                 seq!(
-                    '(' => throw(
-                        obj!(CustomError { message: "expected closing ')'" })
-                    )
+                    '(' => throw obj!(CustomError { message: "expected closing ')'" })
                 )
             )
         );
@@ -404,7 +396,7 @@ mod tests {
                 "X",
                 seq!(
                     ("ty", rule_ref!("Type")) =>
-                    ret(obj! {}.cast_to(reference("ty")))
+                    obj! {}.cast_to(expr!(ty))
                 )
             )
         );

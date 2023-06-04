@@ -21,8 +21,7 @@ rule!(
     seq!(
         "=>",
         ("value", alts!(rule_ref!(Throw), rule_ref!(Return)))
-        =>
-        ret(reference("value"))
+        => value
     )
 );
 

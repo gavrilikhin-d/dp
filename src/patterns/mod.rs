@@ -17,9 +17,9 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    action::{reference, ret},
     bootstrap::rules::Alternatives,
     errors::Expected,
+    expr,
     parsers::{ParseResult, Parser},
     rule, rule_ref, seq, Context, Expression, ParseTreeNode, Token,
 };
@@ -58,16 +58,15 @@ pub fn separated(pattern: impl Into<Pattern>, separator: impl Into<Pattern>) -> 
                 seq!(
                     separator.into(),
                     ("value", pattern.clone())
-                    =>
-                    ret(reference("value"))
+                    => value
                 )
             )
         )
         =>
-        ret(Expression::Flatten(vec![
-            reference("head"),
-            reference("tail"),
-        ]))
+        Expression::Flatten(vec![
+            expr!(head),
+            expr!(tail),
+        ])
     )
     .into()
 }

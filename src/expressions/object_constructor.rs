@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use crate::{
-    action::{reference, ret},
     alts,
     bootstrap::rules::{DistinctObject, Identifier, Object},
     errors::{CustomError, Error, Severity},
+    expr,
     patterns::transparent,
     rule, rule_ref, seq, Expression,
 };
@@ -25,17 +25,14 @@ rule!(
             ("name", rule_ref!(Identifier)),
             ':',
             ("value", rule_ref!("Expression"))
-            =>
-            ret(reference("value").cast_to(reference("name")))
+            => expr!(value).cast_to(expr!(name))
         ),
         seq!(
             ("var", rule_ref!(Identifier))
             =>
-            ret(
-                reference("var")
-                    .cast_to("Variable")
-                    .cast_to(reference("var"))
-            )
+            expr!(var)
+                .cast_to("Variable")
+                .cast_to(expr!(var))
         )
     ))
 );

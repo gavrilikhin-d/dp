@@ -5,6 +5,7 @@ mod tree;
 pub use tree::*;
 
 pub mod action;
+pub use action::Action;
 
 pub mod patterns;
 pub use patterns::Pattern;

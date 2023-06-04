@@ -40,6 +40,12 @@ rule!(
     )
 );
 
+impl From<char> for Expression {
+    fn from(value: char) -> Self {
+        Expression::Value(value.to_string().into())
+    }
+}
+
 impl From<i32> for Expression {
     fn from(value: i32) -> Self {
         Expression::Value(value.into())

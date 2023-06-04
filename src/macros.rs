@@ -45,17 +45,8 @@ macro_rules! rule_ref {
 }
 
 /// Macro to simplify creation of sequences
-#[macro_export(local_inner_macros)]
-macro_rules! seq {
-	// Hide distracting implementation details from the generated rustdoc.
-	($($tokens:tt)+) => {
-		seq_internal!($($tokens)+)
-	};
-}
-
 #[macro_export]
-#[doc(hidden)]
-macro_rules! seq_internal {
+macro_rules! seq {
 	($expr: expr) => {
 		$crate::Pattern::from($expr)
 	};
@@ -64,12 +55,34 @@ macro_rules! seq_internal {
 			vec![$($crate::Pattern::from($expr)),+]
 		)
 	};
-	($($expr: expr),+ => $action: expr) => {
+	($($expr: expr),+ => $($action:tt)+) => {
 		$crate::patterns::Sequence::new(
 			vec![$($crate::Pattern::from($expr)),+],
-			$action
+			$crate::action!($($action)+)
 		)
 	};
+}
+
+/// Macro to simplify creation of action
+#[macro_export]
+macro_rules! action {
+    (throw $($expr:tt)+) => {
+        $crate::Action::Throw($crate::expr!($($expr)+))
+    };
+    ($($expr:tt)+) => {
+        $crate::Action::Return($crate::expr!($($expr)+))
+    };
+}
+
+/// Macro to simplify creation of expressions
+#[macro_export]
+macro_rules! expr {
+    ($var: ident) => {
+        $crate::Expression::Variable(stringify!($var).to_string())
+    };
+    ($expr: expr) => {
+        $crate::Expression::from($expr)
+    };
 }
 
 /// Macro for convenient rule creation
@@ -101,7 +114,7 @@ macro_rules! rule {
 #[macro_export]
 macro_rules! alts {
     ($head: expr, $($tail: expr),+) => {
-		crate::Pattern::Alternatives(vec![$head.into(), $($tail.into()),+].into())
+		$crate::Pattern::Alternatives(vec![$head.into(), $($tail.into()),+].into())
 	};
 }
 
@@ -110,7 +123,7 @@ macro_rules! obj {
     (@field $name:ident) => {
         crate::expressions::FieldInitializer {
             name: None,
-            value: reference(stringify!($name)),
+            value: expr!($name),
         }
     };
     (@field $name:ident : $value:expr ) => {

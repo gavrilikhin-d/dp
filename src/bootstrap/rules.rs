@@ -6,8 +6,8 @@ use pretty_assertions::assert_eq;
 use serde_json::json;
 
 use crate::{
-    action::{merge, reference, ret},
-    alts,
+    action::merge,
+    alts, expr,
     expressions::FieldInitializer,
     patterns::{self, separated, transparent, Named, Sequence},
     rule, rule_ref, seq, Expression,
@@ -74,7 +74,7 @@ fn rule_name() {
 
 rule!(
     struct RuleReference:
-    seq!(("name", rule_ref!(RuleName)) => ret(reference("name").cast_to("RuleReference")))
+    seq!(("name", rule_ref!(RuleName)) => expr!(name).cast_to("RuleReference"))
 );
 #[test]
 fn rule_reference() {
@@ -104,7 +104,7 @@ fn typename() {
 
 rule!(
     struct Variable:
-    seq!(("name", rule_ref!(Identifier)) => ret(reference("name").cast_to("Variable")))
+    seq!(("name", rule_ref!(Identifier)) => expr!(name).cast_to("Variable"))
 );
 #[test]
 fn variable() {
@@ -159,14 +159,12 @@ fn object() {
 
 rule!(
     struct NonEmptyObject:
-    Sequence::new(
-        vec![
-            '{'.into(),
-            ("initializers", separated(rule_ref!(FieldInitializer), ',')).into(),
-            patterns::Repeat::at_most_once(',').into(),
-            '}'.into(),
-        ],
-        ret(merge(reference("initializers")))
+    seq!(
+        '{',
+        ("initializers", separated(rule_ref!(FieldInitializer), ',')),
+        patterns::Repeat::at_most_once(','),
+        '}'
+        => merge(expr!(initializers))
     )
 );
 #[test]
@@ -189,8 +187,7 @@ rule!(
     struct Return:
     seq!(
         ("value", rule_ref!(Expression))
-        =>
-        ret(reference("value").cast_to("Return"))
+        => expr!(value).cast_to("Return")
     )
 );
 #[test]
@@ -210,7 +207,7 @@ rule!(
     seq!(
         "throw",
         ("error", rule_ref!(Expression)) =>
-        ret(reference("error").cast_to("Throw"))
+        expr!(error).cast_to("Throw")
     )
 );
 #[test]
@@ -232,7 +229,7 @@ rule!(
             "(",
             ("pattern", rule_ref!("Pattern")),
             ")"
-            => ret(reference("pattern"))
+            => pattern
         ),
         rule_ref!(Named),
         rule_ref!(RuleReference),
@@ -288,8 +285,7 @@ rule!(
     seq!(
         ("ty", rule_ref!(Typename)),
         ("obj", rule_ref!(Object))
-        =>
-        ret(reference("obj").cast_to(reference("ty")))
+        => expr!(obj).cast_to(expr!(ty))
     )
 );
 #[test]
@@ -311,8 +307,7 @@ rule!(
         '(',
         ("value", rule_ref!(Value)),
         ')'
-        =>
-        ret(reference("value").cast_to(reference("ty")))
+        => expr!(value).cast_to(expr!(ty))
     )
 );
 #[test]
