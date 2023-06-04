@@ -2,7 +2,7 @@ use derive_more::From;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
-use crate::{alts, bootstrap::rules::Variable, errors::Error, rule_ref, Rule};
+use crate::{alts, bootstrap::rules::Variable, errors::Error, rule, rule_ref};
 
 mod cast;
 pub use cast::*;
@@ -31,6 +31,14 @@ pub enum Expression {
     #[serde(untagged)]
     Value(Value),
 }
+rule!(
+    Expression:
+    alts!(
+        rule_ref!(Cast),
+        rule_ref!(crate::bootstrap::rules::Value),
+        rule_ref!(Variable)
+    )
+);
 
 impl From<i32> for Expression {
     fn from(value: i32) -> Self {
@@ -108,17 +116,6 @@ impl Expression {
             ty: ty.into(),
         }))
     }
-
-    pub fn rule() -> Rule {
-        Rule::new(
-            "Expression",
-            alts!(
-                rule_ref!(Cast),
-                rule_ref!(crate::bootstrap::rules::Value),
-                rule_ref!(Variable)
-            ),
-        )
-    }
 }
 
 #[cfg(test)]
@@ -127,7 +124,7 @@ mod test {
 
     use pretty_assertions::assert_eq;
 
-    use crate::{parsers::Parser, Context, Expression};
+    use crate::{parsers::Parser, Context, Expression, UnderlyingRule};
 
     #[test]
     fn expression() {

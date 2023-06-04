@@ -4,7 +4,7 @@ use serde_json::json;
 use crate::{
     bootstrap::rules::AtomicPattern,
     parsers::{ParseResult, Parser},
-    rule_ref, seq, Context, ParseTree, Rule,
+    rule, rule_ref, seq, Context, ParseTree,
 };
 
 use super::Pattern;
@@ -20,6 +20,13 @@ pub struct Repeat {
     /// Maximum number of repetitions
     pub at_most: Option<usize>,
 }
+rule!(
+    Repeat:
+    seq!(
+        ("pattern", rule_ref!(AtomicPattern)),
+        ("op", Repeat::at_most_once("/[*+?]/"))
+    )
+);
 
 impl Repeat {
     /// Repeat pattern zero or more times (`*`)
@@ -93,52 +100,9 @@ impl Parser for Repeat {
     }
 }
 
-impl Repeat {
-    pub fn rule() -> Rule {
-        Rule::new(
-            "Repeat",
-            seq!(
-                ("pattern", rule_ref!(AtomicPattern)),
-                ("op", Repeat::at_most_once("/[*+?]/"))
-            ),
-        )
-    }
-}
-#[test]
-fn repeat() {
-    let mut context = Context::default();
-    let r = Repeat::rule();
-    assert_eq!(r.parse("x", &mut context).ast, json!("x"));
-    assert_eq!(
-        r.parse("x?", &mut context).ast,
-        json!({
-            "Repeat": {
-                "pattern": "x",
-                "at_most": 1
-            }
-        })
-    );
-    assert_eq!(
-        r.parse("x*", &mut context).ast,
-        json!({
-            "Repeat": {
-                "pattern": "x"
-            }
-        })
-    );
-    assert_eq!(
-        r.parse("x+?", &mut context).ast,
-        json!({
-            "Repeat": {
-                "pattern": "x",
-                "at_least": 1
-            }
-        })
-    );
-}
-
 #[cfg(test)]
 mod test {
+    use crate::UnderlyingRule;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
@@ -149,6 +113,39 @@ mod test {
     };
 
     use super::Repeat;
+
+    #[test]
+    fn repeat() {
+        let mut context = Context::default();
+        let r = Repeat::rule();
+        assert_eq!(r.parse("x", &mut context).ast, json!("x"));
+        assert_eq!(
+            r.parse("x?", &mut context).ast,
+            json!({
+                "Repeat": {
+                    "pattern": "x",
+                    "at_most": 1
+                }
+            })
+        );
+        assert_eq!(
+            r.parse("x*", &mut context).ast,
+            json!({
+                "Repeat": {
+                    "pattern": "x"
+                }
+            })
+        );
+        assert_eq!(
+            r.parse("x+?", &mut context).ast,
+            json!({
+                "Repeat": {
+                    "pattern": "x",
+                    "at_least": 1
+                }
+            })
+        );
+    }
 
     #[test]
     fn at_most_once() {

@@ -39,7 +39,7 @@ impl Parser for RuleReference {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bootstrap::rules::Text, rule_ref, Context, Pattern};
+    use crate::{bootstrap::rules::Text, rule_ref, Context, Pattern, UnderlyingRule};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

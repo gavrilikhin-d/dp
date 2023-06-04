@@ -4,8 +4,14 @@ use serde_json::json;
 use crate::{
     bootstrap::rules::RuleName,
     parsers::{ParseResult, Parser},
-    rule_ref, seq, Context, ParseTree, Pattern,
+    rule, rule_ref, seq, Context, ParseTree, Pattern,
 };
+
+/// Trait for types that may be converted to rule
+pub trait UnderlyingRule {
+    /// Get the underlying rule representation
+    fn rule() -> Rule;
+}
 
 /// Syntax rule
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -15,6 +21,14 @@ pub struct Rule {
     /// Pattern to parse
     pub pattern: Pattern,
 }
+rule!(
+    Rule:
+    seq!(
+        ("name", rule_ref!(RuleName)),
+        ":",
+        ("pattern", rule_ref!(Pattern))
+    )
+);
 
 impl Rule {
     /// Create a new rule with a name and a pattern
@@ -23,17 +37,6 @@ impl Rule {
             name: name.into(),
             pattern: pattern.into(),
         }
-    }
-
-    pub fn rule() -> Rule {
-        Rule::new(
-            "Rule",
-            seq!(
-                ("name", rule_ref!(RuleName)),
-                ":",
-                ("pattern", rule_ref!(Pattern))
-            ),
-        )
     }
 }
 
@@ -82,7 +85,7 @@ mod tests {
 
     #[test]
     fn single_unnamed_pattern_not_wrapped() {
-        rule!(Test: r"/[^\s]+/");
+        rule!(struct Test: r"/[^\s]+/");
 
         let mut context = Context::new();
         assert_eq!(
@@ -97,7 +100,7 @@ mod tests {
 
     #[test]
     fn single_named_pattern_wrapped() {
-        rule!(Test: ("text", r"/[^\s]+/"));
+        rule!(struct Test: ("text", r"/[^\s]+/"));
 
         let mut context = Context::new();
         assert_eq!(
@@ -112,7 +115,7 @@ mod tests {
 
     #[test]
     fn single_named_pattern_with_action() {
-        rule!(Test: seq!(("text", r"/[^\s]+/") => ret(reference("text"))));
+        rule!(struct Test: seq!(("text", r"/[^\s]+/") => ret(reference("text"))));
 
         let mut context = Context::new();
         assert_eq!(
@@ -127,7 +130,7 @@ mod tests {
 
     #[test]
     fn sequence_without_named_ignored() {
-        rule!(Test: seq!("a", "b"));
+        rule!(struct Test: seq!("a", "b"));
 
         let mut context = Context::new();
         assert_eq!(Test::rule().parse("a b", &mut context).ast, json!({}));
@@ -135,7 +138,7 @@ mod tests {
 
     #[test]
     fn sequence_with_named_wrapped() {
-        rule!(Test: seq!("a", ("name", "b")));
+        rule!(struct Test: seq!("a", ("name", "b")));
 
         let mut context = Context::new();
         assert_eq!(

@@ -5,7 +5,7 @@ use crate::{
     alts,
     bootstrap::rules::{Return, Throw},
     errors::Error,
-    rule_ref, seq, Expression, Rule,
+    rule, rule_ref, seq, Expression,
 };
 
 /// Action to do on AST
@@ -16,20 +16,15 @@ pub enum Action {
     /// Return value
     Return(Expression),
 }
-
-impl Action {
-    pub fn rule() -> Rule {
-        Rule::new(
-            "Action",
-            seq!(
-                "=>",
-                ("value", alts!(rule_ref!(Throw), rule_ref!(Return)))
-                =>
-                ret(reference("value"))
-            ),
-        )
-    }
-}
+rule!(
+    Action:
+    seq!(
+        "=>",
+        ("value", alts!(rule_ref!(Throw), rule_ref!(Return)))
+        =>
+        ret(reference("value"))
+    )
+);
 
 impl Action {
     /// Execute this action with expanding variables
@@ -63,7 +58,7 @@ pub fn merge(expr: impl Into<Expression>) -> Expression {
 
 #[cfg(test)]
 mod test {
-    use crate::{action::Action, parsers::Parser, Context};
+    use crate::{action::Action, parsers::Parser, Context, UnderlyingRule};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

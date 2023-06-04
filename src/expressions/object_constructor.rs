@@ -7,7 +7,7 @@ use crate::{
     bootstrap::rules::{DistinctObject, Identifier, Object},
     errors::{CustomError, Error, Severity},
     patterns::transparent,
-    rule_ref, seq, Expression, Rule,
+    rule, rule_ref, seq, Expression,
 };
 
 /// Initializes a field of an object
@@ -18,32 +18,27 @@ pub struct FieldInitializer {
     /// Value of the field
     pub value: Expression,
 }
-
-impl FieldInitializer {
-    pub fn rule() -> Rule {
-        Rule::new(
-            "FieldInitializer",
-            transparent(alts!(
-                seq!(
-                    ("name", rule_ref!(Identifier)),
-                    ':',
-                    ("value", rule_ref!("Expression"))
-                    =>
-                    ret(reference("value").cast_to(reference("name")))
-                ),
-                seq!(
-                    ("var", rule_ref!(Identifier))
-                    =>
-                    ret(
-                        reference("var")
-                            .cast_to("Variable")
-                            .cast_to(reference("var"))
-                    )
-                )
-            )),
+rule!(
+    FieldInitializer:
+    transparent(alts!(
+        seq!(
+            ("name", rule_ref!(Identifier)),
+            ':',
+            ("value", rule_ref!("Expression"))
+            =>
+            ret(reference("value").cast_to(reference("name")))
+        ),
+        seq!(
+            ("var", rule_ref!(Identifier))
+            =>
+            ret(
+                reference("var")
+                    .cast_to("Variable")
+                    .cast_to(reference("var"))
+            )
         )
-    }
-}
+    ))
+);
 
 /// Constructor for an object
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -53,6 +48,13 @@ pub struct ObjectConstructor {
     /// Field initializers
     pub initializers: Vec<FieldInitializer>,
 }
+rule!(
+    ObjectConstructor:
+    alts!(
+        rule_ref!(DistinctObject),
+        rule_ref!(Object)
+    )
+);
 
 impl ObjectConstructor {
     /// Cast this object as an expression to another type
@@ -86,13 +88,6 @@ impl ObjectConstructor {
         } else {
             Ok(obj.into())
         }
-    }
-
-    pub fn rule() -> Rule {
-        Rule::new(
-            "ObjectConstructor",
-            transparent(alts!(rule_ref!(DistinctObject), rule_ref!(Object))),
-        )
     }
 }
 
@@ -184,7 +179,7 @@ macro_rules! obj {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{parsers::Parser, Context};
+    use crate::{parsers::Parser, Context, UnderlyingRule};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

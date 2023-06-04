@@ -5,14 +5,14 @@ use serde_json::json;
 use crate::{
     action::Action,
     bootstrap::rules::{
-        self, Alternatives, AtomicPattern, Char, Distinct, DistinctObject, DistinctValue,
-        Identifier, Integer, Named, NonEmptyObject, Object, Regex, Return, RuleName, RuleReference,
-        Text, Throw, Type, Typename, Value, Variable,
+        Alternatives, AtomicPattern, Char, Distinct, DistinctObject, DistinctValue, Identifier,
+        Integer, NonEmptyObject, Object, Regex, Return, RuleName, RuleReference, Text, Throw, Type,
+        Typename, Value, Variable,
     },
     expressions::{Cast, FieldInitializer, ObjectConstructor},
     parsers::ParseResult,
-    patterns::{Repeat, Sequence},
-    rule_ref, Expression, Pattern, Rule,
+    patterns::{Named, Repeat, Sequence},
+    rule_ref, Expression, Pattern, Rule, UnderlyingRule,
 };
 
 /// Action to be executed after parsing
@@ -133,7 +133,7 @@ impl Default for Context {
                     }
                     res
                 }),
-                RuleWithAction::new(rules::String::rule(), without_quotes),
+                RuleWithAction::new(String::rule(), without_quotes),
                 Text::rule().into(),
                 Regex::rule().into(),
                 RuleName::rule().into(),

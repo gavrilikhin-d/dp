@@ -21,7 +21,7 @@ use crate::{
     bootstrap::rules::Alternatives,
     errors::Expected,
     parsers::{ParseResult, Parser},
-    rule_ref, seq, Context, Expression, ParseTreeNode, Rule, Token,
+    rule, rule_ref, seq, Context, Expression, ParseTreeNode, Token,
 };
 
 /// Possible patterns
@@ -45,6 +45,7 @@ pub enum Pattern {
     /// Adds name to the ast of pattern
     Named(Named),
 }
+rule!(Pattern: rule_ref!(Alternatives));
 
 /// <head: Pattern> <tail: (Separator (<value: Pattern> => value))*> => [head, ...tail]
 pub fn separated(pattern: impl Into<Pattern>, separator: impl Into<Pattern>) -> Pattern {
@@ -114,10 +115,6 @@ impl Pattern {
             Pattern::Named(n) => Some(n),
             _ => None,
         }
-    }
-
-    pub fn rule() -> Rule {
-        Rule::new("Pattern", rule_ref!(Alternatives))
     }
 }
 

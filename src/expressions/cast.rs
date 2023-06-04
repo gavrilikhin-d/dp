@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     alts,
     bootstrap::rules::{Type, Value, Variable},
-    rule_ref, seq, Expression, Rule,
+    rule, rule_ref, seq, Expression,
 };
 
 /// Cast expression to type
@@ -14,24 +14,19 @@ pub struct Cast {
     /// Type to cast to
     pub ty: Expression,
 }
-
-impl Cast {
-    pub fn rule() -> Rule {
-        Rule::new(
-            "Cast",
-            seq!(
-                ("expr", alts!(rule_ref!(Variable), rule_ref!(Value))),
-                "as",
-                ("ty", rule_ref!(Type))
-            ),
-        )
-    }
-}
+rule!(
+    Cast:
+    seq!(
+        ("expr", alts!(rule_ref!(Variable), rule_ref!(Value))),
+        "as",
+        ("ty", rule_ref!(Type))
+    )
+);
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{parsers::Parser, Context};
+    use crate::{parsers::Parser, Context, UnderlyingRule};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

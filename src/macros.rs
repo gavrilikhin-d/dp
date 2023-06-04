@@ -22,9 +22,9 @@ macro_rules! text {
 /// ```
 /// # use pretty_assertions::assert_eq;
 ///
-/// use dp::{rule_ref, rule, Pattern};
+/// use dp::{rule_ref, rule, Pattern, UnderlyingRule};
 ///
-/// rule!(Rule: "lol");
+/// rule!(struct Rule: "lol");
 /// assert_eq!(
 /// 	rule_ref!(Rule),
 /// 	Pattern::RuleReference(Box::new(Rule::rule().into()))
@@ -37,30 +37,60 @@ macro_rules! text {
 #[macro_export]
 macro_rules! rule_ref {
     ($rule: ty) => {
-        $crate::Pattern::RuleReference(Box::new(<$rule>::rule().into()))
+        $crate::Pattern::RuleReference(Box::new(<$rule as $crate::UnderlyingRule>::rule().into()))
     };
     ($name: expr) => {
         $crate::Pattern::RuleReference(Box::new($name.into()))
     };
 }
 
+/// Macro to simplify creation of sequences
+#[macro_export(local_inner_macros)]
+macro_rules! seq {
+	// Hide distracting implementation details from the generated rustdoc.
+	($($tokens:tt)+) => {
+		seq_internal!($($tokens)+)
+	};
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! seq_internal {
+	($expr: expr) => {
+		$crate::Pattern::from($expr)
+	};
+	($($expr: expr),+) => {
+		$crate::patterns::Sequence::from(
+			vec![$($crate::Pattern::from($expr)),+]
+		)
+	};
+	($($expr: expr),+ => $action: expr) => {
+		$crate::patterns::Sequence::new(
+			vec![$($crate::Pattern::from($expr)),+],
+			$action
+		)
+	};
+}
+
 /// Macro for convenient rule creation
 /// ```
 /// # use pretty_assertions::assert_eq;
 ///
-/// use dp::{rule, Rule};
+/// use dp::{rule, Rule, UnderlyingRule};
 ///
-/// rule!(X: "lol");
+/// rule!(struct X: "lol");
 /// assert_eq!(X::rule(), Rule::new("X", "lol"));
 /// ```
 #[macro_export]
 macro_rules! rule {
-    ($name:ident : $pattern:expr) => {
+    (struct $name:ident : $pattern:expr) => {
         pub struct $name;
 
-        impl $name {
-            /// Get rule with this name
-            pub fn rule() -> $crate::Rule {
+        rule!($name : $pattern);
+    };
+    ($name:ty : $pattern:expr) => {
+        impl $crate::UnderlyingRule for $name {
+            fn rule() -> $crate::Rule {
                 $crate::Rule::new(stringify!($name), $pattern)
             }
         }

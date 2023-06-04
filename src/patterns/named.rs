@@ -3,9 +3,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{
+    bootstrap::rules::Identifier,
     parsers::{ParseResult, Parser},
-    Context, Pattern,
+    rule, seq, Context, Pattern,
 };
+
+use super::rule_ref;
 
 /// Adds name to the ast of pattern
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, From)]
@@ -14,6 +17,33 @@ pub struct Named {
     pub name: String,
     /// Pattern itself
     pub pattern: Box<Pattern>,
+}
+
+rule!(
+    Named:
+    seq!(
+        "<",
+        ("name", rule_ref!(Identifier)),
+        ":",
+        ("pattern", rule_ref!("Pattern")),
+        ">"
+    )
+);
+
+#[test]
+fn named() {
+    use crate::UnderlyingRule;
+    let mut context = Context::default();
+    let r = Named::rule();
+    assert_eq!(
+        r.parse("<name: x>", &mut context).ast,
+        json!({
+            "Named": {
+                "name": "name",
+                "pattern": "x"
+            }
+        })
+    );
 }
 
 impl Parser for Named {

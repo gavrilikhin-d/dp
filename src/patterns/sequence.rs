@@ -4,9 +4,11 @@ use serde_json::json;
 use crate::{
     action::{reference, Action},
     parsers::{ParseResult, Parser},
-    rule_ref, Context, ParseTree, Pattern, Rule,
+    rule, rule_ref, seq, Context, ParseTree, Pattern,
 };
 
+#[cfg(test)]
+use crate::UnderlyingRule;
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 
@@ -21,6 +23,15 @@ pub struct Sequence {
     #[serde(default)]
     pub action: Option<Action>,
 }
+rule!(
+    Sequence:
+    transparent(
+        seq!(
+            ("patterns", Repeat::once_or_more(rule_ref!(Repeat))),
+            ("action", Repeat::at_most_once(rule_ref!(Action)))
+        )
+    )
+);
 
 impl Sequence {
     /// Create a new sequence with an action
@@ -107,45 +118,6 @@ impl Parser for Sequence {
     }
 }
 
-/// Macro to simplify creation of sequences
-#[macro_export(local_inner_macros)]
-macro_rules! seq {
-	// Hide distracting implementation details from the generated rustdoc.
-	($($tokens:tt)+) => {
-		seq_internal!($($tokens)+)
-	};
-}
-
-#[macro_export]
-#[doc(hidden)]
-macro_rules! seq_internal {
-	($expr: expr) => {
-		crate::Pattern::from($expr)
-	};
-	($($expr: expr),+) => {
-		crate::patterns::Sequence::from(
-			vec![$(crate::Pattern::from($expr)),+]
-		)
-	};
-	($($expr: expr),+ => $action: expr) => {
-		crate::patterns::Sequence::new(
-			vec![$(crate::Pattern::from($expr)),+],
-			$action
-		)
-	};
-}
-
-impl Sequence {
-    pub fn rule() -> Rule {
-        Rule::new(
-            "Sequence",
-            transparent(seq!(
-                ("patterns", Repeat::once_or_more(rule_ref!(Repeat))),
-                ("action", Repeat::at_most_once(rule_ref!(Action)))
-            )),
-        )
-    }
-}
 #[test]
 fn sequence() {
     let mut context = Context::default();
