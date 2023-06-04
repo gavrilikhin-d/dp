@@ -72,13 +72,6 @@ pub fn separated(pattern: impl Into<Pattern>, separator: impl Into<Pattern>) -> 
     .into()
 }
 
-#[macro_export]
-macro_rules! alts {
-    ($head: expr, $($tail: expr),+) => {
-		crate::Pattern::Alternatives(vec![$head.into(), $($tail.into()),+].into())
-	};
-}
-
 impl Pattern {
     /// Return an alternative pattern between this pattern and another
     pub fn or(mut self, other: Pattern) -> Self {

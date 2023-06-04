@@ -96,3 +96,11 @@ macro_rules! rule {
         }
     };
 }
+
+/// Macro to simplify creation of alternatives
+#[macro_export]
+macro_rules! alts {
+    ($head: expr, $($tail: expr),+) => {
+		crate::Pattern::Alternatives(vec![$head.into(), $($tail.into()),+].into())
+	};
+}
