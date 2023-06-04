@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use syntax::{parsers::Parser, Context};
+use dp::{parsers::Parser, Context};
 
 fn main() {
     miette::set_panic_hook();
