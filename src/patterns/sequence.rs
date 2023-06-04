@@ -30,6 +30,11 @@ impl Sequence {
             action: Some(action),
         }
     }
+
+    /// Is there any named patterns in this sequence?
+    pub fn has_named(&self) -> bool {
+        self.patterns.iter().any(|p| p.is_named())
+    }
 }
 
 /// Returns sequence like this: <x: Pattern> => x
@@ -105,6 +110,9 @@ impl Parser for Sequence {
 /// Macro to simplify creation of sequences
 #[macro_export]
 macro_rules! seq {
+	($expr: expr) => {
+		crate::Pattern::from($expr)
+	};
 	($($expr: expr),+) => {
 		vec![$(crate::Pattern::from($expr)),+]
 	};
@@ -121,8 +129,8 @@ impl Sequence {
         Rule::new(
             "Sequence",
             transparent(seq!(
-                ("patterns", Repeat::once_or_more(rule_ref!(Repeat)).into()),
-                ("action", Repeat::at_most_once(rule_ref!(Action)).into())
+                ("patterns", Repeat::once_or_more(rule_ref!(Repeat))),
+                ("action", Repeat::at_most_once(rule_ref!(Action)))
             )),
         )
     }
@@ -162,12 +170,7 @@ mod test {
     #[test]
     fn named() {
         let mut context = Context::default();
-        let p: Sequence = vec![
-            '('.into(),
-            ("pattern", "/[A-z][a-z]*/".into()).into(),
-            ')'.into(),
-        ]
-        .into();
+        let p: Sequence = vec!['('.into(), ("pattern", "/[A-z][a-z]*/").into(), ')'.into()].into();
 
         assert_eq!(p.parse("( x )", &mut context).ast, json!({"pattern": "x"}));
     }
@@ -176,11 +179,7 @@ mod test {
     fn action() {
         let mut context = Context::default();
         let p = Sequence::new(
-            vec![
-                '('.into(),
-                ("pattern", "/[A-z][a-z]*/".into()).into(),
-                ')'.into(),
-            ],
+            vec!['('.into(), ("pattern", "/[A-z][a-z]*/").into(), ')'.into()],
             Action::Return(reference("pattern")),
         );
 

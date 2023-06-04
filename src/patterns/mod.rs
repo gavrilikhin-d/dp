@@ -21,7 +21,7 @@ use crate::{
     bootstrap::rules::Alternatives,
     errors::Expected,
     parsers::{ParseResult, Parser},
-    rule_ref, Context, Expression, ParseTreeNode, Rule, Token,
+    rule_ref, seq, Context, Expression, ParseTreeNode, Rule, Token,
 };
 
 /// Possible patterns
@@ -49,23 +49,24 @@ pub enum Pattern {
 /// <head: Pattern> <tail: (Separator (<value: Pattern> => value))*> => [head, ...tail]
 pub fn separated(pattern: impl Into<Pattern>, separator: impl Into<Pattern>) -> Pattern {
     let pattern = pattern.into();
-    Sequence::new(
-        vec![
-            ("head", pattern.clone()).into(),
-            (
-                "tail",
-                Repeat::zero_or_more(Sequence::new(
-                    vec![separator.into(), ("value", pattern).into()],
-                    ret(reference("value")),
-                ))
-                .into(),
+    seq!(
+        ("head", pattern.clone()),
+        (
+            "tail",
+            Repeat::zero_or_more(
+                seq!(
+                    separator.into(),
+                    ("value", pattern.clone())
+                    =>
+                    ret(reference("value"))
+                )
             )
-                .into(),
-        ],
+        )
+        =>
         ret(Expression::Flatten(vec![
             reference("head"),
             reference("tail"),
-        ])),
+        ]))
     )
     .into()
 }
@@ -89,8 +90,34 @@ impl Pattern {
         self
     }
 
+    /// Is this pattern a sequence?
+    pub fn is_sequence(&self) -> bool {
+        matches!(self, Pattern::Sequence(_))
+    }
+
+    /// Cast this pattern to a sequence
+    pub fn as_sequence(&self) -> Option<&Sequence> {
+        match self {
+            Pattern::Sequence(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    /// Is this pattern a named pattern?
+    pub fn is_named(&self) -> bool {
+        matches!(self, Pattern::Named(_))
+    }
+
+    /// Cast this pattern to a named pattern
+    pub fn as_named(&self) -> Option<&Named> {
+        match self {
+            Pattern::Named(n) => Some(n),
+            _ => None,
+        }
+    }
+
     pub fn rule() -> Rule {
-        Rule::new("Pattern", transparent(rule_ref!(Alternatives)))
+        Rule::new("Pattern", rule_ref!(Alternatives))
     }
 }
 
@@ -186,18 +213,15 @@ impl From<String> for Pattern {
     }
 }
 
-impl From<(&str, Pattern)> for Pattern {
-    fn from(value: (&str, Pattern)) -> Self {
-        Pattern::Named(Named {
-            name: value.0.into(),
-            pattern: Box::new(value.1),
-        })
-    }
-}
-
 impl From<Vec<Pattern>> for Pattern {
     fn from(value: Vec<Pattern>) -> Self {
         Pattern::Sequence(value.into())
+    }
+}
+
+impl<N: Into<String>, P: Into<Pattern>> From<(N, P)> for Pattern {
+    fn from(value: (N, P)) -> Self {
+        Pattern::Named(value.into())
     }
 }
 

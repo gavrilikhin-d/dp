@@ -99,7 +99,7 @@ impl Repeat {
             "Repeat",
             seq!(
                 ("pattern", rule_ref!(AtomicPattern)),
-                ("op", Repeat::at_most_once("/[*+?]/").into())
+                ("op", Repeat::at_most_once("/[*+?]/"))
             ),
         )
     }

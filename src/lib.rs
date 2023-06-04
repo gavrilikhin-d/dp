@@ -1,4 +1,5 @@
 #![feature(box_into_inner)]
+#![feature(let_chains)]
 
 mod tree;
 pub use tree::*;

@@ -2,9 +2,7 @@ use derive_more::From;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
-use crate::{
-    alts, bootstrap::rules::Variable, errors::Error, patterns::transparent, rule_ref, Rule,
-};
+use crate::{alts, bootstrap::rules::Variable, errors::Error, rule_ref, Rule};
 
 mod cast;
 pub use cast::*;
@@ -105,11 +103,11 @@ impl Expression {
     pub fn rule() -> Rule {
         Rule::new(
             "Expression",
-            transparent(alts!(
+            alts!(
                 rule_ref!(Cast),
                 rule_ref!(crate::bootstrap::rules::Value),
                 rule_ref!(Variable)
-            )),
+            ),
         )
     }
 }

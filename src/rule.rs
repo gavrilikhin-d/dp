@@ -4,7 +4,6 @@ use serde_json::json;
 use crate::{
     bootstrap::rules::RuleName,
     parsers::{ParseResult, Parser},
-    patterns::Sequence,
     rule_ref, seq, Context, ParseTree, Pattern,
 };
 
@@ -47,13 +46,16 @@ impl Parser for Rule {
             return res;
         }
 
-        if !matches!(
-            self.pattern,
-            Pattern::Sequence(Sequence {
-                action: Some(_),
-                ..
-            })
-        ) {
+        // single unnamed -> transparent
+        // has action -> transparent
+        // named -> wrap
+        // sequence with named without actions -> wrap
+        if self.pattern.is_named()
+            || self
+                .pattern
+                .as_sequence()
+                .is_some_and(|s| s.has_named() && s.action.is_none())
+        {
             res.ast = json!({ &self.name: res.ast.take() });
         }
 
@@ -65,10 +67,24 @@ impl Parser for Rule {
     }
 }
 
+#[macro_export]
+macro_rules! rule {
+    ($name:ident, $pattern:expr) => {
+        pub struct $name;
+
+        impl $name {
+            /// Get rule with this name
+            pub fn rule() -> Rule {
+                Rule::new(stringify!($name), $pattern)
+            }
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
-        action::{reference, ret, throw, Action},
+        action::{reference, ret, throw},
         patterns::Repeat,
         rule_ref, Expression,
     };
@@ -78,19 +94,67 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_parse_rule() {
+    fn single_unnamed_pattern_not_wrapped() {
+        rule!(Test, r"/[^\s]+/");
+
         let mut context = Context::new();
-        let rule = Rule {
-            name: "Test".to_string(),
-            pattern: r"/[^\s]+/".into(),
-        };
         assert_eq!(
-            rule.parse("Hello World", &mut context),
+            Test::rule().parse("Hello World", &mut context),
             ParseResult {
                 delta: 5,
                 tree: ParseTree::named("Test").with("Hello"),
-                ast: json!({"Test": "Hello"})
+                ast: json!("Hello")
             }
+        );
+    }
+
+    #[test]
+    fn single_named_pattern_wrapped() {
+        rule!(Test, ("text", r"/[^\s]+/"));
+
+        let mut context = Context::new();
+        assert_eq!(
+            Test::rule().parse("Hello World", &mut context),
+            ParseResult {
+                delta: 5,
+                tree: ParseTree::named("Test").with("Hello"),
+                ast: json!({"Test": {"text": "Hello"}})
+            }
+        );
+    }
+
+    #[test]
+    fn single_named_pattern_with_action() {
+        rule!(Test, seq!(("text", r"/[^\s]+/") => ret(reference("text"))));
+
+        let mut context = Context::new();
+        assert_eq!(
+            Test::rule().parse("Hello World", &mut context),
+            ParseResult {
+                delta: 5,
+                tree: ParseTree::named("Test").with("Hello"),
+                ast: json!("Hello")
+            }
+        );
+    }
+
+    #[test]
+    fn sequence_without_named_ignored() {
+        rule!(Test, seq!("a", "b"));
+
+        let mut context = Context::new();
+        assert_eq!(Test::rule().parse("a b", &mut context).ast, json!({}));
+    }
+
+    #[test]
+    fn sequence_with_named_wrapped() {
+        rule!(Test, seq!("a", ("name", "b")));
+
+        let mut context = Context::new();
+        assert_eq!(
+            Test::rule().parse("a b", &mut context).ast,
+            json!({
+			"Test": {"name": "b"}})
         );
     }
 
@@ -246,14 +310,12 @@ mod tests {
             rule.as_ref(),
             &Rule::new(
                 "List",
-                Sequence::new(
-                    vec![
-                        '('.into(),
-                        ("letters", Repeat::zero_or_more("x").into()).into(),
-                        ')'.into()
-                    ]
-                    .into(),
-                    Action::Return(reference("letters"))
+                seq!(
+                    '(',
+                    ("letters", Repeat::zero_or_more("x")),
+                    ')'
+                     =>
+                    ret(reference("letters"))
                 )
             )
         );

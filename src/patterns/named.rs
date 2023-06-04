@@ -24,6 +24,15 @@ impl Parser for Named {
     }
 }
 
+impl<N: Into<String>, P: Into<Pattern>> From<(N, P)> for Named {
+    fn from(value: (N, P)) -> Self {
+        Self {
+            name: value.0.into(),
+            pattern: Box::new(value.1.into()),
+        }
+    }
+}
+
 #[test]
 fn test_named() {
     use crate::parsers::ParseResult;

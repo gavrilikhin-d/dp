@@ -1,6 +1,15 @@
 # dp
 **D**ynamic **P**arser with extensible PEG grammar. Reads as *deep*
 
+# Transparency Rules
+* Single unnamed pattern is passed as is:
+  `X: x` ~ `X: <value: x> => value`
+* Sequence without named arguments results in `{}`:
+  `X: x y` ~ `X: x y => {}`
+* Sequence with named arguments is wrapped with rule's name
+  `X: <value: x> y` ~ `X: <value: x> y => X { value }`
+
+
 # Todo
 * [ ] Remove parse tree
 * [ ] Object constructors (they need to implement serde like objects)

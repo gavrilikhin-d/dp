@@ -823,6 +823,6 @@ mod test {
         assert_eq!(context.root, alts!(rule_ref!("Rule"), rule_ref!("Lol")));
 
         let root = context.root.clone();
-        assert_eq!(root.parse("kek", &mut context).ast, json!({ "Lol": "kek" }));
+        assert_eq!(root.parse("kek", &mut context).ast, json!("kek"));
     }
 }
