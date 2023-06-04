@@ -85,8 +85,9 @@ macro_rules! rule {
 mod tests {
     use crate::{
         action::{reference, ret, throw},
+        obj,
         patterns::Repeat,
-        rule_ref, Expression,
+        rule_ref,
     };
 
     use super::*;
@@ -331,9 +332,9 @@ mod tests {
         assert_eq!(
             rule.parse(
                 "List: '(' =>
-					throw {
+					throw CustomError {
 						message: \"expected closing ')'\"
-					} as CustomError
+					}
 				",
                 &mut context
             )
@@ -345,11 +346,8 @@ mod tests {
                         "patterns": ['('],
                         "action": {
                             "Throw": {
-                                "Cast": {
-                                    "ty": "CustomError",
-                                    "expr": {
+                                "CustomError": {
                                     "message": "expected closing ')'"
-                                    }
                                 }
                             }
                         }
@@ -365,11 +363,7 @@ mod tests {
                 "List",
                 seq!(
                     '(' => throw(
-                        Expression::Value(
-                            json!({
-                                "message": "expected closing ')'"
-                            })
-                        ).cast_to("CustomError")
+                        obj!(CustomError { message: "expected closing ')'" })
                     )
                 )
             )
@@ -421,7 +415,7 @@ mod tests {
                 "X",
                 seq!(
                     ("ty", rule_ref!("Type")) =>
-                    ret(Expression::Value(json!({})).cast_to(reference("ty")))
+                    ret(obj! {}.cast_to(reference("ty")))
                 )
             )
         );

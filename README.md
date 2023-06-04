@@ -12,7 +12,7 @@
 
 # Todo
 * [ ] Remove parse tree
-* [ ] Object constructors (they need to implement serde like objects)
+* [x] Object constructors
 * [ ] Array constructors
 * [ ] Add a way to obtain syntax information from variable name
 * [ ] Store source code in context

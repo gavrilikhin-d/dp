@@ -25,10 +25,17 @@ pub enum Expression {
     /// A cast from one type to another
     Cast(Box<Cast>),
     /// An object constructor
+    #[serde(untagged)]
     ObjectConstructor(ObjectConstructor),
     /// A JSON value
     #[serde(untagged)]
     Value(Value),
+}
+
+impl From<i32> for Expression {
+    fn from(value: i32) -> Self {
+        Expression::Value(value.into())
+    }
 }
 
 impl From<&str> for Expression {

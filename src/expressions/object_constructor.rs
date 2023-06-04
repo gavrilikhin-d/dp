@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 
 use crate::{
     action::{reference, ret},
@@ -46,7 +46,7 @@ impl FieldInitializer {
 }
 
 /// Constructor for an object
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ObjectConstructor {
     /// Type of the object, if any
     pub ty: Option<String>,
@@ -55,6 +55,11 @@ pub struct ObjectConstructor {
 }
 
 impl ObjectConstructor {
+    /// Cast this object as an expression to another type
+    pub fn cast_to(self, ty: impl Into<Expression>) -> Expression {
+        Expression::from(self).cast_to(ty)
+    }
+
     pub fn evaluate(&self, variables: &Map<String, Value>) -> Result<Value, Error> {
         let mut obj = Map::new();
         for initializer in &self.initializers {
@@ -74,7 +79,13 @@ impl ObjectConstructor {
                 })?;
             obj.insert(name, value);
         }
-        Ok(obj.into())
+        if let Some(ty) = &self.ty {
+            let mut typed = Map::new();
+            typed.insert(ty.clone(), obj.into());
+            Ok(typed.into())
+        } else {
+            Ok(obj.into())
+        }
     }
 
     pub fn rule() -> Rule {
@@ -83,6 +94,91 @@ impl ObjectConstructor {
             transparent(alts!(rule_ref!(DistinctObject), rule_ref!(Object))),
         )
     }
+}
+
+impl Serialize for ObjectConstructor {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut obj = Map::new();
+        for i in &self.initializers {
+            let name = i
+                .name
+                .clone()
+                .unwrap_or_else(|| i.value.as_variable().unwrap().to_string());
+            obj.insert(name, json!(i.value));
+        }
+        if let Some(ty) = &self.ty {
+            let mut typed = Map::new();
+            typed.insert(ty.clone(), obj.into());
+            typed.serialize(serializer)
+        } else {
+            obj.serialize(serializer)
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for ObjectConstructor {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let mut ty = None;
+        let mut obj = Map::deserialize(deserializer)?;
+        if obj.len() == 1 {
+            let key = obj.keys().next().unwrap().clone();
+            if char::is_uppercase(key.chars().nth(0).unwrap()) {
+                ty = Some(key);
+                obj = obj.values().next().unwrap().as_object().unwrap().clone();
+            }
+        }
+
+        Ok(Self {
+            ty,
+            initializers: obj
+                .into_iter()
+                .map(|(name, value)| (name, serde_json::from_value::<Expression>(value).unwrap()))
+                .map(|(name, value)| {
+                    if let Some(var) = value.as_variable() && var == name {
+                        (None, value)
+                    } else {
+                        (Some(name), value)
+                    }
+                })
+                .map(|(name, value)| FieldInitializer { name, value })
+                .collect(),
+        })
+    }
+}
+
+#[macro_export]
+macro_rules! obj {
+    (@field $name:ident) => {
+        crate::expressions::FieldInitializer {
+            name: None,
+            value: reference(stringify!($name)),
+        }
+    };
+    (@field $name:ident : $value:expr ) => {
+        crate::expressions::FieldInitializer {
+            name: Some(stringify!($name).to_string()),
+            value: $value.into(),
+        }
+    };
+
+    {$($name:ident $(: $value:expr)?),*} => {
+        crate::expressions::ObjectConstructor {
+            ty: None,
+            initializers: vec![$(obj!(@field $name $(: $value)?)),*],
+        }
+    };
+    ($ty:ident { $($name:ident $(: $value:expr)?),* }) => {
+        crate::expressions::ObjectConstructor {
+            ty: Some(stringify!($ty).to_string()),
+            initializers: vec![$(obj!(@field $name $(: $value)?)),*],
+        }
+    };
 }
 
 #[cfg(test)]
@@ -125,20 +221,56 @@ mod test {
     }
 
     #[test]
+    fn serialize_object_constructor() {
+        let mut obj = obj! { a, b: 1 };
+        assert_eq!(
+            json!(obj),
+            json!({
+                "a": {"Variable": "a"},
+                "b": 1
+            })
+        );
+
+        obj.ty = Some("Type".to_string());
+        assert_eq!(
+            json!(obj),
+            json!({
+                "Type": {
+                    "a": {"Variable": "a"},
+                    "b": 1
+                }
+            })
+        )
+    }
+
+    #[test]
+    fn deserialize_object_constructor() {
+        let mut obj = obj! {a, b: 1};
+        assert_eq!(
+            obj,
+            serde_json::from_value(json!({
+                "a": {"Variable": "a"},
+                "b": 1
+            }))
+            .unwrap()
+        );
+
+        obj.ty = Some("Type".to_string());
+        assert_eq!(
+            obj,
+            serde_json::from_value(json!({
+                "Type": {
+                    "a": {"Variable": "a"},
+                    "b": 1
+                }
+            }))
+            .unwrap()
+        )
+    }
+
+    #[test]
     fn evaluate() {
-        let obj = ObjectConstructor {
-            ty: None,
-            initializers: vec![
-                FieldInitializer {
-                    name: None,
-                    value: Expression::Variable("a".to_string()),
-                },
-                FieldInitializer {
-                    name: Some("b".to_string()),
-                    value: json!(1).into(),
-                },
-            ],
-        };
+        let obj = obj! { a, b: 1 };
 
         let variables = json!({ "a": 0 });
         assert_eq!(
