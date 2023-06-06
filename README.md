@@ -9,6 +9,14 @@
 * Sequence with named arguments is wrapped with rule's name
   `X: <value: x> y` ~ `X: <value: x> y => X { value }`
 
+# Rules overriding
+You may override rules:
+```
+X: a
+X: b
+
+Y: X
+```
 
 # Todo
 * [ ] Remove parse tree
@@ -19,13 +27,11 @@
 * [ ] Remove `on_parse` function from rule
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
-* [ ] Change the way rules are added to parsing to be more explicit
+* [X] Change the way rules are added to parsing to be more explicit
 * [ ] Add syntax highlighting
 * [ ] Support left-recursion
 * [ ] Packrat parsing
 * [ ] Add documentation
-* [ ] Copy rules on reference in code
-* [ ] Add `&Rule` as a way to reference a rule without copying it.
 * [ ] Simplify separated patterns
 * [ ] Add `#[derive(Rule)]`
       * [ ] Add `#[rule]` attribute
@@ -33,3 +39,7 @@
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
 * [x] Add a way to change rules
+
+Questionable?
+* [ ] Copy rules on reference in code
+* [ ] Add `&Rule` as a way to reference a rule without copying it.
