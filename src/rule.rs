@@ -63,10 +63,9 @@ impl Parser for Rule {
         }
 
         if let Some(on_parsed) = context.on_parsed(&self.name) {
-            on_parsed(at, res, context)
-        } else {
-            res
+            res.ast = on_parsed(res.ast, context);
         }
+        res
     }
 }
 

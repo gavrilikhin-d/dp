@@ -10,47 +10,18 @@ use crate::{
         Type, Typename, Value, Variable,
     },
     expressions::{Cast, FieldInitializer, ObjectConstructor},
-    parsers::ParseResult,
     patterns::{Named, Repeat, Sequence},
     Expression, Pattern, Rule, UnderlyingRule,
 };
 
 /// Action to be executed after parsing
 pub type OnParsedAction =
-    for<'s, 'c> fn(at: usize, res: ParseResult<'s>, context: &'c mut Context) -> ParseResult<'s>;
-
-/// Helper function to make a rule transparent
-fn transparent_ast<'s>(
-    _at: usize,
-    mut res: ParseResult<'s>,
-    _context: &mut Context,
-) -> ParseResult<'s> {
-    if !res.ast.is_object() {
-        return res;
-    }
-
-    res.ast = res
-        .ast
-        .as_object()
-        .unwrap()
-        .iter()
-        .next()
-        .unwrap()
-        .1
-        .clone();
-    res
-}
+    for<'c> fn(ast: serde_json::Value, context: &'c mut Context) -> serde_json::Value;
 
 /// Helper function to make a rule transparent and remove quotes
-fn without_quotes<'s>(
-    at: usize,
-    mut res: ParseResult<'s>,
-    context: &mut Context,
-) -> ParseResult<'s> {
-    res = transparent_ast(at, res, context);
-    let s = res.ast.as_str().unwrap();
-    res.ast = json!(s[1..s.len() - 1]);
-    res
+fn without_quotes(ast: serde_json::Value, _: &mut Context) -> serde_json::Value {
+    let s = ast.as_str().unwrap();
+    json!(s[1..s.len() - 1])
 }
 
 /// Rule with action to be executed after parsing
@@ -114,14 +85,13 @@ impl Default for Context {
         let rules = vec![
             Root::rule().into(),
             RuleWithAction::new(Char::rule(), without_quotes),
-            RuleWithAction::new(Integer::rule(), |_, mut res, _| {
-                let str = res.ast.as_str().unwrap();
+            RuleWithAction::new(Integer::rule(), |ast, _| {
+                let str = ast.as_str().unwrap();
                 if let Ok(i) = str.parse::<i64>() {
-                    res.ast = i.into();
-                } else {
-                    res.ast = json!({ "Integer": str });
+                    return i.into();
                 }
-                res
+
+                json!({ "Integer": str })
             }),
             RuleWithAction::new(String::rule(), without_quotes),
             Text::rule().into(),
@@ -129,43 +99,41 @@ impl Default for Context {
             RuleName::rule().into(),
             RuleReference::rule().into(),
             Pattern::rule().into(),
-            RuleWithAction::new(Alternatives::rule(), |_, mut res, _| {
-                let alts = res.ast.as_array_mut().unwrap();
+            RuleWithAction::new(Alternatives::rule(), |mut ast, _| {
+                let alts = ast.as_array_mut().unwrap();
                 let mut alts = alts.iter().map(|a| a.get("x").unwrap());
                 if alts.len() == 1 {
-                    res.ast = alts.next().unwrap().clone();
-                } else {
-                    res.ast = json!({ "Alternatives": alts.collect::<Vec<_>>() });
+                    return json!(alts.next().unwrap().clone());
                 }
-                res
+
+                json!({ "Alternatives": alts.collect::<Vec<_>>() })
             }),
             Action::rule().into(),
             Return::rule().into(),
             Throw::rule().into(),
-            RuleWithAction::new(Sequence::rule(), |_, mut res, _| {
-                let action = res.ast["action"].clone();
-                let patterns = res.ast.get_mut("patterns").unwrap().as_array_mut().unwrap();
+            RuleWithAction::new(Sequence::rule(), |mut ast, _| {
+                let action = ast["action"].clone();
+                let patterns = ast.get_mut("patterns").unwrap().as_array_mut().unwrap();
                 if action.is_null() {
                     if patterns.len() == 1 {
-                        res.ast = patterns.pop().unwrap();
-                    } else {
-                        res.ast = patterns.clone().into();
+                        return json!(patterns.pop().unwrap());
                     }
-                } else {
-                    res.ast = json!({"Sequence": res.ast});
-                }
-                res
-            }),
-            RuleWithAction::new(Repeat::rule(), |at, mut res, context| {
-                res = transparent_ast(at, res, context);
 
-                let pattern = res.ast.get_mut("pattern").unwrap().take();
-                let op = res.ast.get_mut("op").unwrap().take();
-                if op.is_null() {
-                    res.ast = pattern;
-                    return res;
+                    return json!(patterns);
                 }
-                res.ast = match op.as_str().unwrap() {
+
+                json!({"Sequence": ast})
+            }),
+            RuleWithAction::new(Repeat::rule(), |mut ast, _| {
+                let ast = ast.get_mut("Repeat").unwrap();
+
+                let pattern = ast.get_mut("pattern").unwrap().take();
+                let op = ast.get_mut("op").unwrap().take();
+                if op.is_null() {
+                    return json!(pattern);
+                }
+
+                match op.as_str().unwrap() {
                     "?" => json!({
                         "Repeat": {
                             "pattern": pattern,
@@ -184,8 +152,7 @@ impl Default for Context {
                         }
                     }),
                     _ => unreachable!(),
-                };
-                res
+                }
             }),
             AtomicPattern::rule().into(),
             Named::rule().into(),
@@ -199,11 +166,10 @@ impl Default for Context {
             Expression::rule().into(),
             Value::rule().into(),
             FieldInitializer::rule().into(),
-            RuleWithAction::new(Rule::rule(), |_, res, context| {
-                let rule: Rule =
-                    serde_json::from_value(res.ast.get("Rule").unwrap().clone()).unwrap();
+            RuleWithAction::new(Rule::rule(), |ast, context| {
+                let rule: Rule = serde_json::from_value(ast.get("Rule").unwrap().clone()).unwrap();
                 context.add_rule(rule.into());
-                res
+                ast
             }),
             Variable::rule().into(),
             DistinctObject::rule().into(),

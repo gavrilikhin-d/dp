@@ -25,6 +25,7 @@ Y: X
 * [ ] Add a way to obtain syntax information from variable name
 * [ ] Store source code in context
 * [ ] Remove `on_parse` function from rule
+* [ ] Remove action from Repeat
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
 * [X] Change the way rules are added to parsing to be more explicit
