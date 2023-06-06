@@ -1,3 +1,5 @@
+Root: Rule
+
 Rule: <name: RuleName> ':' <pattern: Pattern>
 Pattern: Alternatives
 Alternatives: Sequence ('|' Sequence)*

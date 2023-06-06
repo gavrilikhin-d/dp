@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use serde_json::json;
 
@@ -6,13 +6,13 @@ use crate::{
     action::Action,
     bootstrap::rules::{
         Alternatives, AtomicPattern, Char, Distinct, DistinctObject, DistinctValue, Identifier,
-        Integer, NonEmptyObject, Object, Regex, Return, RuleName, RuleReference, Text, Throw, Type,
-        Typename, Value, Variable,
+        Integer, NonEmptyObject, Object, Regex, Return, Root, RuleName, RuleReference, Text, Throw,
+        Type, Typename, Value, Variable,
     },
     expressions::{Cast, FieldInitializer, ObjectConstructor},
     parsers::ParseResult,
     patterns::{Named, Repeat, Sequence},
-    rule_ref, Expression, Pattern, Rule, UnderlyingRule,
+    Expression, Pattern, Rule, UnderlyingRule,
 };
 
 /// Action to be executed after parsing
@@ -81,154 +81,155 @@ impl From<Rule> for RuleWithAction {
 /// Parsing context
 pub struct Context {
     /// Parsing rules
-    pub rules: Vec<RuleWithAction>,
-    /// Root pattern
-    pub root: Pattern,
+    pub rules: HashMap<String, RuleWithAction>,
 }
 
 impl Context {
     /// Create a new context without any rules
     pub fn new() -> Context {
         Context {
-            rules: vec![],
-            root: "".into(),
+            rules: HashMap::new(),
         }
     }
 
     // Add a rule to the context
-    pub fn add_rule(&mut self, rule: Rule) {
-        self.rules.push(rule.into())
+    pub fn add_rule(&mut self, rule: RuleWithAction) -> Option<RuleWithAction> {
+        self.rules.insert(rule.rule.name.clone(), rule)
     }
 
     /// Find rule by name in the parsing context
     pub fn find_rule(&self, name: &str) -> Option<Arc<Rule>> {
-        self.rules
-            .iter()
-            .map(|r| &r.rule)
-            .find(|r| r.name == name)
-            .cloned()
+        self.rules.get(name).map(|r| r.rule.clone())
     }
 
     /// Get the callback to be called after parsing a rule
     pub fn on_parsed(&self, name: &str) -> Option<OnParsedAction> {
-        self.rules
-            .iter()
-            .find(|r| r.rule.name == name)
-            .and_then(|r| r.on_parsed)
+        self.rules.get(name).map(|r| r.on_parsed).flatten()
     }
 }
 
 impl Default for Context {
     fn default() -> Self {
-        Context {
-            root: rule_ref!("Rule"),
-            rules: vec![
-                RuleWithAction::new(Char::rule(), without_quotes),
-                RuleWithAction::new(Integer::rule(), |_, mut res, _| {
-                    let str = res.ast.as_str().unwrap();
-                    if let Ok(i) = str.parse::<i64>() {
-                        res.ast = i.into();
+        let mut ctx = Context::new();
+        let rules = vec![
+            Root::rule().into(),
+            RuleWithAction::new(Char::rule(), without_quotes),
+            RuleWithAction::new(Integer::rule(), |_, mut res, _| {
+                let str = res.ast.as_str().unwrap();
+                if let Ok(i) = str.parse::<i64>() {
+                    res.ast = i.into();
+                } else {
+                    res.ast = json!({ "Integer": str });
+                }
+                res
+            }),
+            RuleWithAction::new(String::rule(), without_quotes),
+            Text::rule().into(),
+            Regex::rule().into(),
+            RuleName::rule().into(),
+            RuleReference::rule().into(),
+            Pattern::rule().into(),
+            RuleWithAction::new(Alternatives::rule(), |_, mut res, _| {
+                let alts = res.ast.as_array_mut().unwrap();
+                let mut alts = alts.iter().map(|a| a.get("x").unwrap());
+                if alts.len() == 1 {
+                    res.ast = alts.next().unwrap().clone();
+                } else {
+                    res.ast = json!({ "Alternatives": alts.collect::<Vec<_>>() });
+                }
+                res
+            }),
+            Action::rule().into(),
+            Return::rule().into(),
+            Throw::rule().into(),
+            RuleWithAction::new(Sequence::rule(), |_, mut res, _| {
+                let action = res.ast["action"].clone();
+                let patterns = res.ast.get_mut("patterns").unwrap().as_array_mut().unwrap();
+                if action.is_null() {
+                    if patterns.len() == 1 {
+                        res.ast = patterns.pop().unwrap();
                     } else {
-                        res.ast = json!({ "Integer": str });
+                        res.ast = patterns.clone().into();
                     }
-                    res
-                }),
-                RuleWithAction::new(String::rule(), without_quotes),
-                Text::rule().into(),
-                Regex::rule().into(),
-                RuleName::rule().into(),
-                RuleReference::rule().into(),
-                Pattern::rule().into(),
-                RuleWithAction::new(Alternatives::rule(), |_, mut res, _| {
-                    let alts = res.ast.as_array_mut().unwrap();
-                    let mut alts = alts.iter().map(|a| a.get("x").unwrap());
-                    if alts.len() == 1 {
-                        res.ast = alts.next().unwrap().clone();
-                    } else {
-                        res.ast = json!({ "Alternatives": alts.collect::<Vec<_>>() });
-                    }
-                    res
-                }),
-                Action::rule().into(),
-                Return::rule().into(),
-                Throw::rule().into(),
-                RuleWithAction::new(Sequence::rule(), |_, mut res, _| {
-                    let action = res.ast["action"].clone();
-                    let patterns = res.ast.get_mut("patterns").unwrap().as_array_mut().unwrap();
-                    if action.is_null() {
-                        if patterns.len() == 1 {
-                            res.ast = patterns.pop().unwrap();
-                        } else {
-                            res.ast = patterns.clone().into();
-                        }
-                    } else {
-                        res.ast = json!({"Sequence": res.ast});
-                    }
-                    res
-                }),
-                RuleWithAction::new(Repeat::rule(), |at, mut res, context| {
-                    res = transparent_ast(at, res, context);
+                } else {
+                    res.ast = json!({"Sequence": res.ast});
+                }
+                res
+            }),
+            RuleWithAction::new(Repeat::rule(), |at, mut res, context| {
+                res = transparent_ast(at, res, context);
 
-                    let pattern = res.ast.get_mut("pattern").unwrap().take();
-                    let op = res.ast.get_mut("op").unwrap().take();
-                    if op.is_null() {
-                        res.ast = pattern;
-                        return res;
-                    }
-                    res.ast = match op.as_str().unwrap() {
-                        "?" => json!({
-                            "Repeat": {
-                                "pattern": pattern,
-                                "at_most": 1
-                            }
-                        }),
-                        "+" => json!({
-                            "Repeat": {
-                                "pattern": pattern,
-                                "at_least": 1,
-                            }
-                        }),
-                        "*" => json!({
-                            "Repeat": {
-                                "pattern": pattern,
-                            }
-                        }),
-                        _ => unreachable!(),
-                    };
-                    res
-                }),
-                AtomicPattern::rule().into(),
-                Named::rule().into(),
-                Identifier::rule().into(),
-                NonEmptyObject::rule().into(),
-                Object::rule().into(),
-                ObjectConstructor::rule().into(),
-                Type::rule().into(),
-                Typename::rule().into(),
-                Cast::rule().into(),
-                Expression::rule().into(),
-                Value::rule().into(),
-                FieldInitializer::rule().into(),
-                Rule::rule().into(),
-                Variable::rule().into(),
-                DistinctObject::rule().into(),
-                DistinctValue::rule().into(),
-                Distinct::rule().into(),
-            ],
-        }
+                let pattern = res.ast.get_mut("pattern").unwrap().take();
+                let op = res.ast.get_mut("op").unwrap().take();
+                if op.is_null() {
+                    res.ast = pattern;
+                    return res;
+                }
+                res.ast = match op.as_str().unwrap() {
+                    "?" => json!({
+                        "Repeat": {
+                            "pattern": pattern,
+                            "at_most": 1
+                        }
+                    }),
+                    "+" => json!({
+                        "Repeat": {
+                            "pattern": pattern,
+                            "at_least": 1,
+                        }
+                    }),
+                    "*" => json!({
+                        "Repeat": {
+                            "pattern": pattern,
+                        }
+                    }),
+                    _ => unreachable!(),
+                };
+                res
+            }),
+            AtomicPattern::rule().into(),
+            Named::rule().into(),
+            Identifier::rule().into(),
+            NonEmptyObject::rule().into(),
+            Object::rule().into(),
+            ObjectConstructor::rule().into(),
+            Type::rule().into(),
+            Typename::rule().into(),
+            Cast::rule().into(),
+            Expression::rule().into(),
+            Value::rule().into(),
+            FieldInitializer::rule().into(),
+            RuleWithAction::new(Rule::rule(), |_, res, context| {
+                let rule: Rule =
+                    serde_json::from_value(res.ast.get("Rule").unwrap().clone()).unwrap();
+                context.add_rule(rule.into());
+                res
+            }),
+            Variable::rule().into(),
+            DistinctObject::rule().into(),
+            DistinctValue::rule().into(),
+            Distinct::rule().into(),
+        ];
+        rules.into_iter().for_each(|r| {
+            ctx.add_rule(r);
+        });
+        ctx
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+
     use pretty_assertions::assert_eq;
 
     use serde_json::json;
 
     use crate::{
+        bootstrap::rules::Root,
         errors::Expected,
         parsers::{ParseResult, Parser},
-        rule_ref, Context, ParseTree,
+        rule_ref, Context, ParseTree, UnderlyingRule,
     };
 
     #[test]
@@ -802,6 +803,6 @@ mod test {
     fn root() {
         let context = Context::default();
 
-        assert_eq!(context.root, rule_ref!("Rule"));
+        assert_eq!(context.find_rule("Root"), Some(Arc::new(Root::rule())));
     }
 }

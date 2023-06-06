@@ -13,6 +13,8 @@ use crate::{
     rule, rule_ref, seq, Expression,
 };
 
+rule!(struct Root: { rule_ref!("Rule") });
+
 rule!(struct Char: r"/'.'/");
 #[test]
 fn char() {

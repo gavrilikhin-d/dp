@@ -13,7 +13,7 @@ fn main() {
         let mut line = String::new();
         std::io::stdin().read_line(&mut line).unwrap();
 
-        let root = context.root.clone();
+        let root = context.find_rule("Root").unwrap();
 
         let res = root.parse(&line, &mut context);
         if res.has_errors() {
