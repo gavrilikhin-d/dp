@@ -52,9 +52,8 @@ impl Sequence {
 
 /// Returns sequence like this: <x: Pattern> => x
 pub fn transparent(pattern: impl Into<Pattern>) -> Sequence {
-    let pattern = pattern.into();
     seq!(
-        {x: pattern}
+        {x: pattern.into()}
         => x
     )
 }

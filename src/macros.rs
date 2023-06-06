@@ -209,6 +209,9 @@ macro_rules! obj {
 /// Macro to simplify creation of [`Named`] patterns
 #[macro_export]
 macro_rules! named {
+    ($name:ident : $rule:ident) => {
+        $crate::patterns::Named::from((stringify!($name), $crate::rule_ref!($rule)))
+    };
     ($name:ident : $expr:expr) => {
         $crate::patterns::Named::from((stringify!($name), $expr))
     };

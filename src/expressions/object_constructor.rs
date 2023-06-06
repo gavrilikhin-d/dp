@@ -22,13 +22,13 @@ rule!(
     FieldInitializer: {
         transparent(alts!(
             seq!(
-                {name: rule_ref!(Identifier)}
+                {name: Identifier}
                 :
                 {value: rule_ref!("Expression")}
                 => expr!(value).cast_to(expr!(name))
             ),
             seq!(
-                {var: rule_ref!(Identifier)}
+                {var: Identifier}
                 =>
                 expr!(var)
                     .cast_to("Variable")
