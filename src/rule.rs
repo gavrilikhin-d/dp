@@ -70,7 +70,7 @@ impl Parser for Rule {
 
 #[cfg(test)]
 mod tests {
-    use crate::{expr, obj, patterns::Repeat, rule};
+    use crate::rule;
 
     use super::*;
 
@@ -187,18 +187,14 @@ mod tests {
             ParseResult {
                 delta: 6,
                 tree: serde_json::from_str(&tree_text).unwrap(),
-                ast: json!(
-                    {
+                ast: json!({
+                    "Rule": {
                         "name": "X",
                         "pattern": ["a", "b"]
                     }
-                )
+                })
             }
         );
-
-        let rule = context.find_rule("X").unwrap();
-        assert_eq!(rule.name, "X");
-        assert_eq!(rule.pattern, vec!["a".into(), "b".into()].into());
     }
 
     #[test]
@@ -237,18 +233,14 @@ mod tests {
             ParseResult {
                 delta: 9,
                 tree: serde_json::from_str(&tree_text).unwrap(),
-                ast: json!(
-                    {
+                ast: json!({
+                    "Rule": {
                         "name": "X",
                         "pattern": "/ab?c/"
                     }
-                )
+                })
             }
         );
-
-        let rule = context.find_rule("X").unwrap();
-        assert_eq!(rule.name, "X");
-        assert_eq!(rule.pattern, r"/ab?c/".into());
     }
 
     #[test]
@@ -261,37 +253,34 @@ mod tests {
             rule.parse("List: '(' <letters: x*> ')' => letters", &mut context)
                 .ast,
             json!({
-                "name": "List",
-                "pattern": {
-                    "Sequence": {
-                        "patterns": [
-                            '(',
-                            {
-                                "Named": {
-                                    "name": "letters",
-                                    "pattern": {
-                                        "Repeat": {
-                                            "pattern": "x",
+                "Rule": {
+                    "name": "List",
+                    "pattern": {
+                        "Sequence": {
+                            "patterns": [
+                                '(',
+                                {
+                                    "Named": {
+                                        "name": "letters",
+                                        "pattern": {
+                                            "Repeat": {
+                                                "pattern": "x",
+                                            }
                                         }
                                     }
+                                },
+                                ')'
+                            ],
+                            "action": {
+                                "Return": {
+                                    "Variable": "letters"
                                 }
-                            },
-                            ')'
-                        ],
-                        "action": {
-                            "Return": {
-                                "Variable": "letters"
                             }
                         }
                     }
                 }
             })
         );
-
-        let rule = context.find_rule("List").unwrap();
-        rule!(struct List: '(' {letters: Repeat::zero_or_more("x")} ')' => letters);
-        assert_eq!(rule.as_ref(), &List::rule());
-        assert_eq!(rule.parse("(x x)", &mut context).ast, json!(["x", "x"]))
     }
 
     #[test]
@@ -311,14 +300,16 @@ mod tests {
             )
             .ast,
             json!({
-                "name": "List",
-                "pattern": {
-                    "Sequence": {
-                        "patterns": ['('],
-                        "action": {
-                            "Throw": {
-                                "CustomError": {
-                                    "message": "expected closing ')'"
+                "Rule": {
+                    "name": "List",
+                    "pattern": {
+                        "Sequence": {
+                            "patterns": ['('],
+                            "action": {
+                                "Throw": {
+                                    "CustomError": {
+                                        "message": "expected closing ')'"
+                                    }
                                 }
                             }
                         }
@@ -326,18 +317,6 @@ mod tests {
                 }
             })
         );
-
-        let rule = context.find_rule("List").unwrap();
-        rule!(
-            struct List:
-            "(" => throw obj!(
-                CustomError {
-                    message: "expected closing ')'"
-                }
-            )
-        );
-        assert_eq!(rule.as_ref(), &List::rule());
-        assert_eq!(rule.parse("(", &mut context).ast, json!(null))
     }
 
     #[test]
@@ -349,25 +328,27 @@ mod tests {
         assert_eq!(
             rule.parse("X: <ty: Type> => {} as ty", &mut context).ast,
             json!({
-                "name": "X",
-                "pattern": {
-                    "Sequence": {
-                        "patterns": [
-                            {
-                                "Named": {
-                                    "name": "ty",
-                                    "pattern": {
-                                        "RuleReference": "Type"
+                "Rule": {
+                    "name": "X",
+                    "pattern": {
+                        "Sequence": {
+                            "patterns": [
+                                {
+                                    "Named": {
+                                        "name": "ty",
+                                        "pattern": {
+                                            "RuleReference": "Type"
+                                        }
                                     }
                                 }
-                            }
-                        ],
-                        "action": {
-                            "Return": {
-                                "Cast": {
-                                    "expr": {},
-                                    "ty": {
-                                        "Variable": "ty"
+                            ],
+                            "action": {
+                                "Return": {
+                                    "Cast": {
+                                        "expr": {},
+                                        "ty": {
+                                            "Variable": "ty"
+                                        }
                                     }
                                 }
                             }
@@ -376,17 +357,5 @@ mod tests {
                 }
             })
         );
-
-        let rule = context.find_rule("X").unwrap();
-        rule!(
-            struct X:
-            {ty: rule_ref!("Type")} =>
-            obj! {}.cast_to(expr!(ty))
-        );
-        assert_eq!(rule.as_ref(), &X::rule(),);
-        assert_eq!(
-            rule.parse("Person", &mut context).ast,
-            json!({"Person": {}})
-        )
     }
 }

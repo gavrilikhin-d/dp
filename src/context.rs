@@ -209,13 +209,7 @@ impl Default for Context {
                 Expression::rule().into(),
                 Value::rule().into(),
                 FieldInitializer::rule().into(),
-                RuleWithAction::new(Rule::rule(), |at, mut res, context| {
-                    res = transparent_ast(at, res, context);
-                    let rule: Rule = serde_json::from_value(res.ast.clone()).unwrap();
-                    context.root = context.root.clone().or(rule_ref!(rule.name.clone()));
-                    context.add_rule(rule);
-                    res
-                }),
+                Rule::rule().into(),
                 Variable::rule().into(),
                 DistinctObject::rule().into(),
                 DistinctValue::rule().into(),
@@ -227,17 +221,14 @@ impl Default for Context {
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
-
     use pretty_assertions::assert_eq;
 
     use serde_json::json;
 
     use crate::{
-        alts,
         errors::Expected,
         parsers::{ParseResult, Parser},
-        rule_ref, Context, ParseTree, Rule,
+        rule_ref, Context, ParseTree,
     };
 
     #[test]
@@ -798,31 +789,19 @@ mod test {
                 delta: 8,
                 tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!({
-                    "name": "Lol",
-                    "pattern": "kek"
+                    "Rule": {
+                        "name": "Lol",
+                        "pattern": "kek"
+                    }
                 })
             }
         );
-        assert_eq!(
-            context.find_rule("Lol"),
-            Some(Arc::new(Rule {
-                name: "Lol".to_string(),
-                pattern: "kek".into()
-            }))
-        )
     }
 
     #[test]
     fn root() {
-        let mut context = Context::default();
+        let context = Context::default();
 
         assert_eq!(context.root, rule_ref!("Rule"));
-
-        let root = context.root.clone();
-        root.parse("Lol: kek", &mut context);
-        assert_eq!(context.root, alts!(rule_ref!("Rule"), rule_ref!("Lol")));
-
-        let root = context.root.clone();
-        assert_eq!(root.parse("kek", &mut context).ast, json!("kek"));
     }
 }
