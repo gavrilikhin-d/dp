@@ -4,7 +4,11 @@ Rule: <name: RuleName> ':' <pattern: Pattern>
 Pattern: Alternatives
 Alternatives: Sequence ('|' Sequence)*
 Sequence: <patterns: Repeat+> <action: Action?>
-Repeat: <pattern: AtomicPattern> <op: /[*+?]/?>
+Repeat
+	: <pattern: AtomicPattern> * => Repeat { pattern }
+	| <pattern: AtomicPattern> + => Repeat { pattern, at_least: 1 }
+	| <pattern: AtomicPattern> ? => Repeat { pattern, at_most: 1 }
+	| AtomicPattern;
 AtomicPattern
 	: '(' <pattern: Pattern> ')' => pattern
 	| Named

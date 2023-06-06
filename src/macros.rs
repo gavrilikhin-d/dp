@@ -194,7 +194,7 @@ macro_rules! obj {
     (@field $name:ident) => {
         crate::expressions::FieldInitializer {
             name: None,
-            value: expr!($name),
+            value: $crate::expr!($name),
         }
     };
     (@field $name:ident : $value:expr ) => {

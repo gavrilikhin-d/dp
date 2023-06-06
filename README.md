@@ -20,15 +20,12 @@ Y: X
 
 # Todo
 * [ ] Remove parse tree
-* [x] Object constructors
 * [ ] Array constructors
 * [ ] Add a way to obtain syntax information from variable name
 * [ ] Store source code in context
 * [ ] Remove `on_parse` function from rule
-* [ ] Remove action from Repeat
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
-* [X] Change the way rules are added to parsing to be more explicit
 * [ ] Add syntax highlighting
 * [ ] Support left-recursion
 * [ ] Packrat parsing
@@ -39,4 +36,3 @@ Y: X
 	  * [ ] Add `Self::rule()` method
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
-* [x] Add a way to change rules

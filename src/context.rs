@@ -124,36 +124,7 @@ impl Default for Context {
 
                 json!({"Sequence": ast})
             }),
-            RuleWithAction::new(Repeat::rule(), |mut ast, _| {
-                let ast = ast.get_mut("Repeat").unwrap();
-
-                let pattern = ast.get_mut("pattern").unwrap().take();
-                let op = ast.get_mut("op").unwrap().take();
-                if op.is_null() {
-                    return json!(pattern);
-                }
-
-                match op.as_str().unwrap() {
-                    "?" => json!({
-                        "Repeat": {
-                            "pattern": pattern,
-                            "at_most": 1
-                        }
-                    }),
-                    "+" => json!({
-                        "Repeat": {
-                            "pattern": pattern,
-                            "at_least": 1,
-                        }
-                    }),
-                    "*" => json!({
-                        "Repeat": {
-                            "pattern": pattern,
-                        }
-                    }),
-                    _ => unreachable!(),
-                }
-            }),
+            Repeat::rule().into(),
             AtomicPattern::rule().into(),
             Named::rule().into(),
             Identifier::rule().into(),

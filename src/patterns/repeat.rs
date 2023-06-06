@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{
+    alts,
     bootstrap::rules::AtomicPattern,
+    obj,
     parsers::{ParseResult, Parser},
-    rule, rule_ref, Context, ParseTree,
+    rule, rule_ref, seq, Context, ParseTree,
 };
 
 use super::Pattern;
@@ -22,8 +24,23 @@ pub struct Repeat {
 }
 rule!(
     Repeat:
-        {pattern: rule_ref!(AtomicPattern)}
-        {op: Repeat::at_most_once("/[*+?]/")}
+        {
+            alts!(
+                seq!(
+                    {pattern: AtomicPattern} '*'
+                    => obj!(Repeat { pattern })
+                ),
+                seq!(
+                    {pattern: AtomicPattern} '+'
+                    => obj!(Repeat { pattern, at_least: 1 })
+                ),
+                seq!(
+                    {pattern: AtomicPattern} '?'
+                    => obj!(Repeat { pattern, at_most: 1 })
+                ),
+                rule_ref!(AtomicPattern)
+            )
+        }
 );
 
 impl Repeat {
