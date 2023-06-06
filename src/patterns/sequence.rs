@@ -3,6 +3,7 @@ use serde_json::json;
 
 use crate::{
     action::Action,
+    alts, obj,
     parsers::{ParseResult, Parser},
     rule, rule_ref, seq, Context, ParseTree, Pattern,
 };
@@ -26,11 +27,14 @@ pub struct Sequence {
 rule!(
     Sequence:
     {
-        transparent(
+        alts!(
             seq!(
                 {patterns: Repeat::once_or_more(rule_ref!(Repeat))}
-                {action: Repeat::at_most_once(rule_ref!(Action))}
-            )
+                {action: Action}
+                => obj! (Sequence { patterns, action })
+            ),
+            Repeat::at_least(2, rule_ref!(Repeat)),
+            rule_ref!(Repeat)
         )
     }
 );

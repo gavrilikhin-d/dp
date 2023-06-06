@@ -70,6 +70,15 @@ impl Repeat {
             at_most: Some(1),
         }
     }
+
+    /// Repeat pattern at least `at_least` times
+    pub fn at_least(at_least: usize, pattern: impl Into<Pattern>) -> Self {
+        Self {
+            pattern: Box::new(pattern.into()),
+            at_least,
+            at_most: None,
+        }
+    }
 }
 
 impl Parser for Repeat {

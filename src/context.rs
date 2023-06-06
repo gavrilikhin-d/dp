@@ -111,19 +111,7 @@ impl Default for Context {
             Action::rule().into(),
             Return::rule().into(),
             Throw::rule().into(),
-            RuleWithAction::new(Sequence::rule(), |mut ast, _| {
-                let action = ast["action"].clone();
-                let patterns = ast.get_mut("patterns").unwrap().as_array_mut().unwrap();
-                if action.is_null() {
-                    if patterns.len() == 1 {
-                        return json!(patterns.pop().unwrap());
-                    }
-
-                    return json!(patterns);
-                }
-
-                json!({"Sequence": ast})
-            }),
+            Sequence::rule().into(),
             Repeat::rule().into(),
             AtomicPattern::rule().into(),
             Named::rule().into(),
