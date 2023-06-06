@@ -66,7 +66,7 @@ impl Parser for Rule {
 
 #[cfg(test)]
 mod tests {
-    use crate::{bootstrap::rules::Type, expr, obj, patterns::Repeat, rule};
+    use crate::{bootstrap::rules::Type, obj, patterns::Repeat, rule};
 
     use super::*;
 
@@ -382,8 +382,7 @@ mod tests {
         let rule = context.find_rule("X").unwrap();
         rule!(
             struct X:
-            {ty: Type} =>
-            obj! {}.cast_to(expr!(ty))
+            {ty: Type} => (obj! {}) as ty
         );
         assert_eq!(rule.as_ref(), &X::rule(),);
         assert_eq!(

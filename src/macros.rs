@@ -136,11 +136,25 @@ macro_rules! action {
 /// Macro to simplify creation of expressions
 #[macro_export]
 macro_rules! expr {
-    ($var: ident) => {
+    ($var:ident) => {
         $crate::Expression::Variable(stringify!($var).to_string())
     };
-    ($expr: expr) => {
+    (($expr:expr) as $ty:ident) => {
+        $expr.cast_to($crate::expr!($ty))
+    };
+    ($var:ident as $ty:ident) => {
+        $crate::expr!($var).cast_to($crate::expr!($ty))
+    };
+    ($expr:expr) => {
         $crate::Expression::from($expr)
+    };
+}
+
+/// Macro to simplify creation of expressions
+#[macro_export]
+macro_rules! cast {
+    ($ty:ident($($tokens:tt)+)) => {
+        $crate::expr!($($tokens)+).cast_to(stringify!($ty))
     };
 }
 

@@ -4,8 +4,9 @@ use serde_json::{json, Map, Value};
 use crate::{
     alts,
     bootstrap::rules::{DistinctObject, Identifier, Object},
+    cast,
     errors::{CustomError, Error, Severity},
-    expr, rule, seq, Expression,
+    rule, seq, Expression,
 };
 
 /// Initializes a field of an object
@@ -23,14 +24,11 @@ rule!(
                 {name: Identifier}
                 ':'
                 {value: Expression}
-                => expr!(value).cast_to(expr!(name))
+                => value as name
             ),
             seq!(
                 {var: Identifier}
-                =>
-                expr!(var)
-                    .cast_to("Variable")
-                    .cast_to(expr!(var))
+                => (cast!(Variable(var))) as var
             )
         )
     }

@@ -7,7 +7,7 @@ use serde_json::json;
 
 use crate::{
     action::merge,
-    alts, expr,
+    alts, cast, expr,
     expressions::{FieldInitializer, ObjectConstructor},
     patterns::{self, separated, Named, Sequence},
     rule, rule_ref, seq, Expression, Pattern, Rule,
@@ -76,7 +76,7 @@ fn rule_name() {
 }
 
 rule!(
-    struct RuleReference: {name: RuleName} => expr!(name).cast_to("RuleReference")
+    struct RuleReference: {name: RuleName} => cast!(RuleReference(name))
 );
 #[test]
 fn rule_reference() {
@@ -104,7 +104,7 @@ fn typename() {
     assert_eq!(r.parse("Type", &mut context).ast, json!("Type"));
 }
 
-rule!(struct Variable: {name: Identifier} => expr!(name).cast_to("Variable"));
+rule!(struct Variable: {name: Identifier} => cast!(Variable(name)));
 #[test]
 fn variable() {
     let mut context = Context::default();
@@ -185,11 +185,7 @@ fn non_empty_object() {
     );
 }
 
-rule!(
-    struct Return:
-    {value: Expression}
-    => expr!(value).cast_to("Return")
-);
+rule!(struct Return: {value: Expression} => cast!(Return(value)));
 #[test]
 fn return_() {
     let mut context = Context::default();
@@ -202,12 +198,7 @@ fn return_() {
     );
 }
 
-rule!(
-    struct Throw:
-        "throw" {error: Expression}
-        =>
-        expr!(error).cast_to("Throw")
-);
+rule!(struct Throw: "throw" {error: Expression} => cast!(Throw(error)));
 #[test]
 fn throw() {
     let mut context = Context::default();
@@ -284,7 +275,7 @@ rule!(
     struct DistinctObject:
         {ty: Typename}
         {obj: Object}
-    => expr!(obj).cast_to(expr!(ty))
+    => obj as ty
 );
 #[test]
 fn distinct_object() {
@@ -304,7 +295,7 @@ rule!(
     '('
     {value: Value}
     ')'
-    => expr!(value).cast_to(expr!(ty))
+    => value as ty
 );
 #[test]
 fn distinct_value() {
