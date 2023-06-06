@@ -229,7 +229,7 @@ mod test {
         bootstrap::rules::Root,
         errors::Expected,
         parsers::{ParseResult, Parser},
-        rule_ref, Context, ParseTree, UnderlyingRule,
+        Context, ParseTree, Rule, UnderlyingRule,
     };
 
     #[test]
@@ -797,6 +797,13 @@ mod test {
                 })
             }
         );
+        assert_eq!(
+            context.find_rule("Lol"),
+            Some(Arc::new(Rule {
+                name: "Lol".to_string(),
+                pattern: "kek".into()
+            }))
+        )
     }
 
     #[test]

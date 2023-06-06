@@ -70,7 +70,7 @@ impl Parser for Rule {
 
 #[cfg(test)]
 mod tests {
-    use crate::rule;
+    use crate::{expr, obj, patterns::Repeat, rule};
 
     use super::*;
 
@@ -195,6 +195,10 @@ mod tests {
                 })
             }
         );
+
+        let rule = context.find_rule("X").unwrap();
+        assert_eq!(rule.name, "X");
+        assert_eq!(rule.pattern, vec!["a".into(), "b".into()].into());
     }
 
     #[test]
@@ -241,6 +245,10 @@ mod tests {
                 })
             }
         );
+
+        let rule = context.find_rule("X").unwrap();
+        assert_eq!(rule.name, "X");
+        assert_eq!(rule.pattern, r"/ab?c/".into());
     }
 
     #[test]
@@ -281,6 +289,11 @@ mod tests {
                 }
             })
         );
+
+        let rule = context.find_rule("List").unwrap();
+        rule!(struct List: '(' {letters: Repeat::zero_or_more("x")} ')' => letters);
+        assert_eq!(rule.as_ref(), &List::rule());
+        assert_eq!(rule.parse("(x x)", &mut context).ast, json!(["x", "x"]))
     }
 
     #[test]
@@ -317,6 +330,18 @@ mod tests {
                 }
             })
         );
+
+        let rule = context.find_rule("List").unwrap();
+        rule!(
+            struct List:
+            "(" => throw obj!(
+                CustomError {
+                    message: "expected closing ')'"
+                }
+            )
+        );
+        assert_eq!(rule.as_ref(), &List::rule());
+        assert_eq!(rule.parse("(", &mut context).ast, json!(null))
     }
 
     #[test]
@@ -357,5 +382,17 @@ mod tests {
                 }
             })
         );
+
+        let rule = context.find_rule("X").unwrap();
+        rule!(
+            struct X:
+            {ty: rule_ref!("Type")} =>
+            obj! {}.cast_to(expr!(ty))
+        );
+        assert_eq!(rule.as_ref(), &X::rule(),);
+        assert_eq!(
+            rule.parse("Person", &mut context).ast,
+            json!({"Person": {}})
+        )
     }
 }
