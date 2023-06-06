@@ -9,6 +9,8 @@ use crate::{
 
 /// Trait for types that may be converted to rule
 pub trait UnderlyingRule {
+    /// Get name of the rule
+    fn name() -> &'static str;
     /// Get the underlying rule representation
     fn rule() -> Rule;
 }

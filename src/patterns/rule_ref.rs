@@ -39,7 +39,7 @@ impl Parser for RuleReference {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bootstrap::rules::Text, rule_ref, Context, Pattern, UnderlyingRule};
+    use crate::{bootstrap::rules::Text, rule_ref, Context, Pattern};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
@@ -49,16 +49,9 @@ mod tests {
         let r = rule_ref!("Text");
         assert_eq!(r, Pattern::RuleReference(Box::new("Text".into())));
         assert_eq!(r.parse("text", &mut context).ast, json!("text"));
-    }
 
-    #[test]
-    fn strong() {
-        let mut context = Context::default();
         let r = rule_ref!(Text);
-        assert_eq!(
-            r,
-            Pattern::RuleReference(Box::new(RuleReference::Strong(Text::rule())))
-        );
+        assert_eq!(r, Pattern::RuleReference(Box::new("Text".into())));
         assert_eq!(r.parse("text", &mut context).ast, json!("text"));
     }
 }

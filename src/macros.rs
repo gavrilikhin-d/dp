@@ -27,7 +27,7 @@ macro_rules! text {
 /// rule!(struct Rule: "lol");
 /// assert_eq!(
 /// 	rule_ref!(Rule),
-/// 	Pattern::RuleReference(Box::new(Rule::rule().into()))
+/// 	Pattern::RuleReference(Box::new("Rule".into()))
 /// );
 /// assert_eq!(
 /// 	rule_ref!("Rule"),
@@ -37,7 +37,7 @@ macro_rules! text {
 #[macro_export]
 macro_rules! rule_ref {
     ($rule: ty) => {
-        $crate::Pattern::RuleReference(Box::new(<$rule as $crate::UnderlyingRule>::rule().into()))
+        $crate::Pattern::RuleReference(Box::new(<$rule as $crate::UnderlyingRule>::name().into()))
     };
     ($name: expr) => {
         $crate::Pattern::RuleReference(Box::new($name.into()))
@@ -162,8 +162,12 @@ macro_rules! rule {
     };
     ($name:ty : $($pattern:tt)+) => {
         impl $crate::UnderlyingRule for $name {
+			fn name() -> &'static str {
+				stringify!($name)
+			}
+
             fn rule() -> $crate::Rule {
-                $crate::Rule::new(stringify!($name), $crate::seq!($($pattern)+))
+                $crate::Rule::new(Self::name(), $crate::seq!($($pattern)+))
             }
         }
     };

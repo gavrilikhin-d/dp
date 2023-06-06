@@ -39,7 +39,3 @@ Y: X
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
 * [x] Add a way to change rules
-
-Questionable?
-* [ ] Copy rules on reference in code
-* [ ] Add `&Rule` as a way to reference a rule without copying it.
