@@ -114,7 +114,7 @@ fn variable() {
     assert_eq!(r.parse("var", &mut context).ast, json!({"Variable": "var"}));
 }
 
-rule!(struct Type: { alts!(rule_ref!(Typename), rule_ref!(Variable))});
+rule!(struct Type: { alts!(Typename | Variable) });
 #[test]
 fn ty() {
     let mut context = Context::default();
@@ -353,10 +353,7 @@ fn distinct_value() {
 
 rule!(
     struct Distinct: {
-        alts!(
-            rule_ref!(DistinctObject),
-            rule_ref!(DistinctValue)
-        )
+        alts!( DistinctObject | DistinctValue )
     }
 );
 #[test]

@@ -175,6 +175,14 @@ macro_rules! alts {
     ($head: expr, $($tail: expr),+) => {
 		$crate::Pattern::Alternatives(vec![$head.into(), $($tail.into()),+].into())
 	};
+    ($head:ident $(| $tail:ident)+) => {
+		$crate::Pattern::Alternatives(
+			vec![
+				$crate::rule_ref!($head),
+				$($crate::rule_ref!($tail)),+
+			]
+		)
+	};
 }
 
 #[macro_export]
