@@ -8,8 +8,6 @@ use crate::{
     rule, Context, Pattern,
 };
 
-use super::rule_ref;
-
 /// Adds name to the ast of pattern
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, From)]
 pub struct Named {
@@ -21,11 +19,11 @@ pub struct Named {
 
 rule!(
     Named:
-        <
-        {name: rule_ref!(Identifier)}
-        :
-        {pattern: rule_ref!("Pattern")}
-        >
+        '<'
+        {name: Identifier}
+        ':'
+        {pattern: Pattern}
+        '>'
 );
 
 #[test]

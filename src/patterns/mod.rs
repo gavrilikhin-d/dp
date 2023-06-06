@@ -21,7 +21,7 @@ use crate::{
     errors::Expected,
     expr,
     parsers::{ParseResult, Parser},
-    rule, rule_ref, seq, Context, Expression, ParseTreeNode, Token,
+    rule, seq, Context, Expression, ParseTreeNode, Token,
 };
 
 /// Possible patterns
@@ -46,7 +46,7 @@ pub enum Pattern {
     /// Adds name to the ast of pattern
     Named(Named),
 }
-rule!(Pattern: { rule_ref!(Alternatives) });
+rule!(Pattern: Alternatives);
 
 impl From<Sequence> for Pattern {
     fn from(value: Sequence) -> Self {

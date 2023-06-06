@@ -49,7 +49,7 @@ macro_rules! rule_ref {
 /// use dp::{seq, action, patterns::Sequence};
 ///
 /// assert_eq!(
-/// 	seq!(a b c),
+/// 	seq!('a' 'b' 'c'),
 ///     vec![
 /// 		"a".into(), "b".into(), "c".into()
 /// 	].into()
@@ -63,7 +63,7 @@ macro_rules! rule_ref {
 ///     ].into()
 /// );
 /// assert_eq!(
-///     seq!(a => 1),
+///     seq!('a' => 1),
 ///     Sequence::new(
 ///         vec!["a".into()].into(),
 ///         action!(1)
@@ -103,10 +103,10 @@ macro_rules! seq {
 		)
 	};
 
-	(@ [$($processed:tt)*] $text:tt $($tail:tt)*) => {
+	(@ [$($processed:tt)*] $rule:ident $($tail:tt)*) => {
 		$crate::seq!(
 			@
-			[$($processed)* $crate::Pattern::from(stringify!($text)),]
+			[$($processed)* $crate::rule_ref!($rule),]
 			$($tail)*
 		)
 	};

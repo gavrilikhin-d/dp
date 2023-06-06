@@ -54,14 +54,6 @@ impl Sequence {
     }
 }
 
-/// Returns sequence like this: <x: Pattern> => x
-pub fn transparent(pattern: impl Into<Pattern>) -> Sequence {
-    seq!(
-        {x: pattern.into()}
-        => x
-    )
-}
-
 impl From<Vec<Pattern>> for Sequence {
     fn from(patterns: Vec<Pattern>) -> Self {
         Self {

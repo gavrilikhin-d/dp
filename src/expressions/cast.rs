@@ -17,7 +17,7 @@ pub struct Cast {
 rule!(
     Cast:
         {expr: alts!(Variable | Value)}
-        as
+        "as"
         {ty: Type}
 );
 

@@ -4,7 +4,7 @@ use serde_json::json;
 use crate::{
     bootstrap::rules::RuleName,
     parsers::{ParseResult, Parser},
-    rule, rule_ref, Context, ParseTree, Pattern,
+    rule, Context, ParseTree, Pattern,
 };
 
 /// Trait for types that may be converted to rule
@@ -23,12 +23,7 @@ pub struct Rule {
     /// Pattern to parse
     pub pattern: Pattern,
 }
-rule!(
-    Rule:
-        {name: rule_ref!(RuleName)}
-        :
-        {pattern: rule_ref!(Pattern)}
-);
+rule!(Rule: {name: RuleName} ':' {pattern: Pattern});
 
 impl Rule {
     /// Create a new rule with a name and a pattern
@@ -71,7 +66,7 @@ impl Parser for Rule {
 
 #[cfg(test)]
 mod tests {
-    use crate::{expr, obj, patterns::Repeat, rule};
+    use crate::{bootstrap::rules::Type, expr, obj, patterns::Repeat, rule};
 
     use super::*;
 
@@ -124,7 +119,7 @@ mod tests {
 
     #[test]
     fn sequence_without_named_ignored() {
-        rule!(struct Test: a b);
+        rule!(struct Test: 'a' 'b');
 
         let mut context = Context::new();
         assert_eq!(Test::rule().parse("a b", &mut context).ast, json!({}));
@@ -132,7 +127,7 @@ mod tests {
 
     #[test]
     fn sequence_with_named_wrapped() {
-        rule!(struct Test: a {name: "b"});
+        rule!(struct Test: 'a' {name: "b"});
 
         let mut context = Context::new();
         assert_eq!(
@@ -387,7 +382,7 @@ mod tests {
         let rule = context.find_rule("X").unwrap();
         rule!(
             struct X:
-            {ty: rule_ref!("Type")} =>
+            {ty: Type} =>
             obj! {}.cast_to(expr!(ty))
         );
         assert_eq!(rule.as_ref(), &X::rule(),);

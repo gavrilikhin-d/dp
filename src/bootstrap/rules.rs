@@ -8,12 +8,12 @@ use serde_json::json;
 use crate::{
     action::merge,
     alts, expr,
-    expressions::FieldInitializer,
-    patterns::{self, separated, transparent, Named, Sequence},
-    rule, rule_ref, seq, Expression,
+    expressions::{FieldInitializer, ObjectConstructor},
+    patterns::{self, separated, Named, Sequence},
+    rule, rule_ref, seq, Expression, Pattern, Rule,
 };
 
-rule!(struct Root: { rule_ref!("Rule") });
+rule!(struct Root: Rule);
 
 rule!(struct Char: r"/'.'/");
 #[test]
@@ -76,8 +76,7 @@ fn rule_name() {
 }
 
 rule!(
-    struct RuleReference:
-    {name: rule_ref!(RuleName)} => expr!(name).cast_to("RuleReference")
+    struct RuleReference: {name: RuleName} => expr!(name).cast_to("RuleReference")
 );
 #[test]
 fn rule_reference() {
@@ -105,10 +104,7 @@ fn typename() {
     assert_eq!(r.parse("Type", &mut context).ast, json!("Type"));
 }
 
-rule!(
-    struct Variable:
-    {name: rule_ref!(Identifier)} => expr!(name).cast_to("Variable")
-);
+rule!(struct Variable: {name: Identifier} => expr!(name).cast_to("Variable"));
 #[test]
 fn variable() {
     let mut context = Context::default();
@@ -128,11 +124,11 @@ fn ty() {
 rule!(
     struct Value: {
         alts!(
-            rule_ref!("DistinctValue"),
-            rule_ref!(Char),
-            rule_ref!(String),
-            rule_ref!(Integer),
-            rule_ref!("ObjectConstructor")
+            DistinctValue |
+            Char |
+            String |
+            Integer |
+            ObjectConstructor
         )
     }
 );
@@ -148,7 +144,10 @@ fn value() {
 
 rule!(
     struct Object: {
-        alts!(vec!['{'.into(), '}'.into()], rule_ref!(NonEmptyObject))
+        alts!(
+            seq!('{' '}'),
+            rule_ref!(NonEmptyObject)
+        )
     }
 );
 #[test]
@@ -188,7 +187,7 @@ fn non_empty_object() {
 
 rule!(
     struct Return:
-    {value: rule_ref!(Expression)}
+    {value: Expression}
     => expr!(value).cast_to("Return")
 );
 #[test]
@@ -205,7 +204,7 @@ fn return_() {
 
 rule!(
     struct Throw:
-        throw {error: rule_ref!(Expression)}
+        "throw" {error: Expression}
         =>
         expr!(error).cast_to("Throw")
 );
@@ -226,7 +225,7 @@ rule!(
         alts!(
             seq!(
                 '('
-                {pattern: rule_ref!("Pattern")}
+                {pattern: Pattern}
                 ')'
                 => pattern
             ),
@@ -263,7 +262,7 @@ fn atomic_pattern() {
 
 rule!(
     struct Alternatives: {
-        transparent(separated(("x", rule_ref!(Sequence)), "|"))
+        separated(("x", rule_ref!(Sequence)), "|")
     }
 );
 #[test]
@@ -283,8 +282,8 @@ fn alternatives() {
 
 rule!(
     struct DistinctObject:
-        {ty: rule_ref!(Typename)}
-        {obj: rule_ref!(Object)}
+        {ty: Typename}
+        {obj: Object}
     => expr!(obj).cast_to(expr!(ty))
 );
 #[test]
@@ -301,9 +300,9 @@ fn distinct_object() {
 
 rule!(
     struct DistinctValue:
-    {ty: rule_ref!(Typename)}
+    {ty: Typename}
     '('
-    {value: rule_ref!(Value)}
+    {value: Value}
     ')'
     => expr!(value).cast_to(expr!(ty))
 );

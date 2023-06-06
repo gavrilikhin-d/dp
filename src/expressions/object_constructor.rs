@@ -5,9 +5,7 @@ use crate::{
     alts,
     bootstrap::rules::{DistinctObject, Identifier, Object},
     errors::{CustomError, Error, Severity},
-    expr,
-    patterns::transparent,
-    rule, rule_ref, seq, Expression,
+    expr, rule, seq, Expression,
 };
 
 /// Initializes a field of an object
@@ -20,11 +18,11 @@ pub struct FieldInitializer {
 }
 rule!(
     FieldInitializer: {
-        transparent(alts!(
+        alts!(
             seq!(
                 {name: Identifier}
-                :
-                {value: rule_ref!("Expression")}
+                ':'
+                {value: Expression}
                 => expr!(value).cast_to(expr!(name))
             ),
             seq!(
@@ -34,7 +32,7 @@ rule!(
                     .cast_to("Variable")
                     .cast_to(expr!(var))
             )
-        ))
+        )
     }
 );
 
@@ -49,8 +47,7 @@ pub struct ObjectConstructor {
 rule!(
     ObjectConstructor: {
         alts!(
-            rule_ref!(DistinctObject),
-            rule_ref!(Object)
+            DistinctObject | Object
         )
     }
 );

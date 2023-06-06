@@ -15,7 +15,7 @@ You may override rules:
 X: a
 X: b
 
-Y: X
+Y: X // Same as Y: b
 ```
 
 # Todo
@@ -36,3 +36,4 @@ Y: X
 	  * [ ] Add `Self::rule()` method
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
+* [ ] Comments
