@@ -29,7 +29,7 @@ Y: X // Same as Y: b
 * [ ] Export/Import rules
 * [ ] Add syntax highlighting
 * [ ] Support left-recursion
-* [ ] Packrat parsing
+* [x] Packrat parsing (only caching rules)
 * [ ] Add documentation
 * [ ] Simplify separated patterns
 * [ ] Add `#[derive(Rule)]`

@@ -1,4 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 
 use serde_json::json;
 
@@ -9,7 +13,9 @@ use crate::{
         Integer, NonEmptyObject, Object, Regex, Return, Root, RuleName, RuleReference, Text, Throw,
         Type, Typename, Value, Variable,
     },
+    errors::Error,
     expressions::{Cast, FieldInitializer, ObjectConstructor},
+    parsers::ParseResult,
     patterns::{Named, Repeat, Sequence},
     Expression, Pattern, Rule, UnderlyingRule,
 };
@@ -49,10 +55,24 @@ impl From<Rule> for RuleWithAction {
     }
 }
 
+/// Keys inside cache
+#[derive(PartialEq, Eq, Hash)]
+pub struct Key {
+    /// Id of source
+    pub source_id: u64,
+    /// Position at which parsed
+    pub at: usize,
+    /// Rule's name or pattern's id
+    pub id: String,
+}
+pub type Cache = HashMap<Key, Result<ParseResult, Error>>;
+
 /// Parsing context
 pub struct Context {
     /// Parsing rules
     pub rules: HashMap<String, RuleWithAction>,
+    /// Cached rules
+    pub cache: Cache,
 }
 
 impl Context {
@@ -60,6 +80,7 @@ impl Context {
     pub fn new() -> Context {
         Context {
             rules: HashMap::new(),
+            cache: Cache::new(),
         }
     }
 
@@ -76,6 +97,16 @@ impl Context {
     /// Get the callback to be called after parsing a rule
     pub fn on_parsed(&self, name: &str) -> Option<OnParsedAction> {
         self.rules.get(name).map(|r| r.on_parsed).flatten()
+    }
+
+    /// Cache parsing result at given position
+    pub fn cache(&mut self, key: Key, result: Result<ParseResult, Error>) {
+        self.cache.insert(key, result);
+    }
+
+    /// Fetch parsing result at given position from cache
+    pub fn fetch(&self, key: &Key) -> Option<&Result<ParseResult, Error>> {
+        self.cache.get(key)
     }
 }
 
@@ -142,6 +173,13 @@ impl Default for Context {
     }
 }
 
+/// Get source id
+pub fn source_id(source: &str) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    source.hash(&mut hasher);
+    hasher.finish()
+}
+
 #[cfg(test)]
 mod test {
     use std::sync::Arc;
@@ -154,7 +192,7 @@ mod test {
         bootstrap::rules::Root,
         errors::Expected,
         parsers::{ParseResult, Parser},
-        Context, Rule, UnderlyingRule,
+        rule, source_id, Context, Key, Rule, UnderlyingRule,
     };
 
     #[test]
@@ -578,5 +616,40 @@ mod test {
         let context = Context::default();
 
         assert_eq!(context.find_rule("Root"), Some(Arc::new(Root::rule())));
+    }
+
+    #[test]
+    fn caching() {
+        let mut context = Context::new();
+        assert!(context.cache.is_empty());
+
+        rule!(struct Test: 'a');
+        let r = Test::rule();
+        let res = r.parse("a", &mut context);
+        assert_eq!(res.as_ref().unwrap().ast, json!('a'));
+        assert_eq!(
+            &res,
+            context
+                .fetch(&Key {
+                    source_id: source_id("a"),
+                    at: 0,
+                    id: "Test".to_string()
+                })
+                .unwrap()
+        );
+
+        // Even after changing rule we should still get same result
+        let r = Rule::new("Test", "b");
+        let res = r.parse("a", &mut context);
+        assert_eq!(
+            &res,
+            context
+                .fetch(&Key {
+                    source_id: source_id("a"),
+                    at: 0,
+                    id: "Test".to_string()
+                })
+                .unwrap()
+        )
     }
 }

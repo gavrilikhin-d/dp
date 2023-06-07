@@ -1,4 +1,5 @@
 #![feature(let_chains)]
+#![feature(lazy_cell)]
 
 pub mod action;
 pub use action::Action;

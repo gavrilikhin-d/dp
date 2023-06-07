@@ -5,7 +5,7 @@ use crate::{
     bootstrap::rules::RuleName,
     errors::Error,
     parsers::{ParseResult, Parser},
-    rule, Context, Pattern,
+    rule, source_id, Context, Key, Pattern,
 };
 
 /// Trait for types that may be converted to rule
@@ -34,6 +34,15 @@ impl Rule {
             pattern: pattern.into(),
         }
     }
+
+    /// Generate key to cache
+    fn key<'s>(&self, source: &'s str, at: usize) -> Key {
+        Key {
+            source_id: source_id(source),
+            at,
+            id: self.name.clone(),
+        }
+    }
 }
 
 impl Parser for Rule {
@@ -43,25 +52,33 @@ impl Parser for Rule {
         at: usize,
         context: &mut Context,
     ) -> Result<ParseResult, Error> {
-        let mut res = self.pattern.parse_at(source, at, context)?;
-
-        // single unnamed -> transparent
-        // has action -> transparent
-        // named -> wrap
-        // sequence with named without actions -> wrap
-        if self.pattern.is_named()
-            || self
-                .pattern
-                .as_sequence()
-                .is_some_and(|s| s.has_named() && s.action.is_none())
-        {
-            res.ast = json!({ &self.name: res.ast.take() });
+        if let Some(res) = context.fetch(&self.key(source, at)) {
+            return res.clone();
         }
 
-        if let Some(on_parsed) = context.on_parsed(&self.name) {
-            res.ast = on_parsed(res.ast, context);
+        let mut result = self.pattern.parse_at(source, at, context);
+        if let Ok(ref mut res) = &mut result {
+            // single unnamed -> transparent
+            // has action -> transparent
+            // named -> wrap
+            // sequence with named without actions -> wrap
+            if self.pattern.is_named()
+                || self
+                    .pattern
+                    .as_sequence()
+                    .is_some_and(|s| s.has_named() && s.action.is_none())
+            {
+                res.ast = json!({ &self.name: res.ast.take() });
+            }
+
+            if let Some(on_parsed) = context.on_parsed(&self.name) {
+                res.ast = on_parsed(res.ast.take(), context);
+            }
         }
-        Ok(res)
+
+        context.cache(self.key(source, at), result.clone());
+
+        result
     }
 }
 

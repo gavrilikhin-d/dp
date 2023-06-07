@@ -3,7 +3,7 @@ use serde_json::Value;
 use crate::{errors::Error, Context};
 
 /// Result of parsing
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ParseResult {
     /// Number of parsed characters
     pub delta: usize,
