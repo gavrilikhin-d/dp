@@ -21,6 +21,7 @@ Y: X // Same as Y: b
 # Todo
 * [ ] Remove parse tree
 * [ ] Array constructors
+* [x] Remove parse tree
 * [ ] Add a way to obtain syntax information from variable name
 * [ ] Store source code in context
 * [ ] Remove `on_parse` function from rule

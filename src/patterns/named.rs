@@ -4,6 +4,7 @@ use serde_json::json;
 
 use crate::{
     bootstrap::rules::Identifier,
+    errors::Error,
     parsers::{ParseResult, Parser},
     rule, Context, Pattern,
 };
@@ -32,7 +33,7 @@ fn named() {
     let mut context = Context::default();
     let r = Named::rule();
     assert_eq!(
-        r.parse("<name: x>", &mut context).ast,
+        r.parse("<name: x>", &mut context).unwrap().ast,
         json!({
             "Named": {
                 "name": "name",
@@ -43,10 +44,15 @@ fn named() {
 }
 
 impl Parser for Named {
-    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> ParseResult<'s> {
-        let mut result = self.pattern.parse_at(source, at, context);
+    fn parse_at<'s>(
+        &self,
+        source: &'s str,
+        at: usize,
+        context: &mut Context,
+    ) -> Result<ParseResult, Error> {
+        let mut result = self.pattern.parse_at(source, at, context)?;
         result.ast = json!({&self.name: result.ast});
-        result
+        Ok(result)
     }
 }
 
@@ -71,10 +77,9 @@ fn test_named() {
         pattern: Box::new("/[A-z][a-z]*/".into()),
     };
     assert_eq!(
-        pattern.parse("John", &mut context),
+        pattern.parse("John", &mut context).unwrap(),
         ParseResult {
             delta: 4,
-            tree: "John".into(),
             ast: json!({"name": "John"}),
         }
     );

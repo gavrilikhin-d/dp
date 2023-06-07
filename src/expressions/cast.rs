@@ -33,7 +33,7 @@ mod tests {
         let mut context = Context::default();
         let r = Cast::rule();
         assert_eq!(
-            r.parse("1 as Integer", &mut context).ast,
+            r.parse("1 as Integer", &mut context).unwrap().ast,
             json!({
                 "Cast": {
                     "ty": "Integer",
@@ -42,7 +42,7 @@ mod tests {
             })
         );
         assert_eq!(
-            r.parse("1 as ty", &mut context).ast,
+            r.parse("1 as ty", &mut context).unwrap().ast,
             json!({
                 "Cast": {
                     "ty": { "Variable": "ty" },

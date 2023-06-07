@@ -64,13 +64,13 @@ mod test {
         let mut context = Context::default();
         let r = Action::rule();
         assert_eq!(
-            r.parse("=> 1", &mut context).ast,
+            r.parse("=> 1", &mut context).unwrap().ast,
             json!({
                 "Return": 1
             })
         );
         assert_eq!(
-            r.parse("=> throw 1", &mut context).ast,
+            r.parse("=> throw 1", &mut context).unwrap().ast,
             json!({
                 "Throw": 1
             })

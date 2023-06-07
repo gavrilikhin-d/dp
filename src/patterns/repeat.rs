@@ -4,9 +4,10 @@ use serde_json::json;
 use crate::{
     alts,
     bootstrap::rules::AtomicPattern,
+    errors::Error,
     obj,
     parsers::{ParseResult, Parser},
-    rule, rule_ref, seq, Context, ParseTree,
+    rule, rule_ref, seq, Context,
 };
 
 use super::Pattern;
@@ -82,35 +83,34 @@ impl Repeat {
 }
 
 impl Parser for Repeat {
-    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> ParseResult<'s> {
+    fn parse_at<'s>(
+        &self,
+        source: &'s str,
+        at: usize,
+        context: &mut Context,
+    ) -> Result<ParseResult, Error> {
         debug_assert!(self.at_least <= self.at_most.unwrap_or(usize::MAX));
 
         let mut delta = 0;
-        let mut tree = ParseTree::empty();
         let mut asts = Vec::new();
         for _ in 0..self.at_least {
-            let res = self.pattern.parse_at(source, at + delta, context);
+            let res = self.pattern.parse_at(source, at + delta, context)?;
             delta += res.delta;
-            tree.push(res.tree);
             asts.push(res.ast);
         }
 
-        if tree.is_ok() {
-            for _ in self.at_least..self.at_most.unwrap_or(usize::MAX) {
-                let res = self.pattern.parse_at(source, at + delta, context);
-                if res.is_ok() {
-                    delta += res.delta;
-                    tree.push(res.tree);
-                    asts.push(res.ast);
-                } else {
-                    break;
-                }
+        for _ in self.at_least..self.at_most.unwrap_or(usize::MAX) {
+            let res = self.pattern.parse_at(source, at + delta, context);
+            if let Ok(res) = res {
+                delta += res.delta;
+                asts.push(res.ast);
+            } else {
+                break;
             }
         }
 
-        ParseResult {
+        Ok(ParseResult {
             delta,
-            tree: tree.flatten(),
             ast: if self.at_most == Some(1) {
                 if asts.len() == 1 {
                     asts.into_iter().next().unwrap()
@@ -120,7 +120,7 @@ impl Parser for Repeat {
             } else {
                 asts.into()
             },
-        }
+        })
     }
 }
 
@@ -142,9 +142,9 @@ mod test {
     fn repeat() {
         let mut context = Context::default();
         let r = Repeat::rule();
-        assert_eq!(r.parse("x", &mut context).ast, json!("x"));
+        assert_eq!(r.parse("x", &mut context).unwrap().ast, json!("x"));
         assert_eq!(
-            r.parse("x?", &mut context).ast,
+            r.parse("x?", &mut context).unwrap().ast,
             json!({
                 "Repeat": {
                     "pattern": "x",
@@ -153,7 +153,7 @@ mod test {
             })
         );
         assert_eq!(
-            r.parse("x*", &mut context).ast,
+            r.parse("x*", &mut context).unwrap().ast,
             json!({
                 "Repeat": {
                     "pattern": "x"
@@ -161,7 +161,7 @@ mod test {
             })
         );
         assert_eq!(
-            r.parse("x+?", &mut context).ast,
+            r.parse("x+?", &mut context).unwrap().ast,
             json!({
                 "Repeat": {
                     "pattern": "x",
@@ -176,22 +176,20 @@ mod test {
         let mut context = Context::default();
         let pattern = Repeat::at_most_once("a");
         assert_eq!(
-            pattern.parse("", &mut context),
+            pattern.parse("", &mut context).unwrap(),
             ParseResult::empty().with_ast(json!(null))
         );
         assert_eq!(
-            pattern.parse("a", &mut context),
+            pattern.parse("a", &mut context).unwrap(),
             ParseResult {
                 delta: 1,
-                tree: "a".into(),
                 ast: "a".into()
             }
         );
         assert_eq!(
-            pattern.parse("aa", &mut context),
+            pattern.parse("aa", &mut context).unwrap(),
             ParseResult {
                 delta: 1,
-                tree: "a".into(),
                 ast: "a".into()
             }
         )
@@ -202,22 +200,20 @@ mod test {
         let mut context = Context::default();
         let pattern = Repeat::zero_or_more("a");
         assert_eq!(
-            pattern.parse("", &mut context),
+            pattern.parse("", &mut context).unwrap(),
             ParseResult::empty().with_ast(json!([]))
         );
         assert_eq!(
-            pattern.parse("a", &mut context),
+            pattern.parse("a", &mut context).unwrap(),
             ParseResult {
                 delta: 1,
-                tree: "a".into(),
                 ast: vec!["a"].into()
             }
         );
         assert_eq!(
-            pattern.parse("aa", &mut context),
+            pattern.parse("aa", &mut context).unwrap(),
             ParseResult {
                 delta: 2,
-                tree: vec!["a", "a"].into(),
                 ast: json!(["a", "a"])
             }
         );
@@ -228,30 +224,24 @@ mod test {
         let mut context = Context::default();
         let pattern = Repeat::once_or_more("a");
         assert_eq!(
-            pattern.parse("", &mut context),
-            ParseResult {
-                delta: 0,
-                tree: Expected {
-                    expected: "a".to_string(),
-                    at: 0
-                }
-                .into(),
-                ast: json!([null])
+            pattern.parse("", &mut context).unwrap_err(),
+            Expected {
+                expected: "a".to_string(),
+                at: 0
             }
+            .into()
         );
         assert_eq!(
-            pattern.parse("a", &mut context),
+            pattern.parse("a", &mut context).unwrap(),
             ParseResult {
                 delta: 1,
-                tree: "a".into(),
                 ast: vec!["a"].into()
             }
         );
         assert_eq!(
-            pattern.parse("aa", &mut context),
+            pattern.parse("aa", &mut context).unwrap(),
             ParseResult {
                 delta: 2,
-                tree: vec!["a", "a"].into(),
                 ast: json!(["a", "a"])
             }
         );

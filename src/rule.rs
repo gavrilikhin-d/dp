@@ -3,8 +3,9 @@ use serde_json::json;
 
 use crate::{
     bootstrap::rules::RuleName,
+    errors::Error,
     parsers::{ParseResult, Parser},
-    rule, Context, ParseTree, Pattern,
+    rule, Context, Pattern,
 };
 
 /// Trait for types that may be converted to rule
@@ -36,13 +37,13 @@ impl Rule {
 }
 
 impl Parser for Rule {
-    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> ParseResult<'s> {
-        let mut res = self.pattern.parse_at(source, at, context);
-        res.tree = ParseTree::named(self.name.clone()).with(res.tree).flatten();
-
-        if res.has_errors() {
-            return res;
-        }
+    fn parse_at<'s>(
+        &self,
+        source: &'s str,
+        at: usize,
+        context: &mut Context,
+    ) -> Result<ParseResult, Error> {
+        let mut res = self.pattern.parse_at(source, at, context)?;
 
         // single unnamed -> transparent
         // has action -> transparent
@@ -60,7 +61,7 @@ impl Parser for Rule {
         if let Some(on_parsed) = context.on_parsed(&self.name) {
             res.ast = on_parsed(res.ast, context);
         }
-        res
+        Ok(res)
     }
 }
 
@@ -78,10 +79,9 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("Hello World", &mut context),
+            Test::rule().parse("Hello World", &mut context).unwrap(),
             ParseResult {
                 delta: 5,
-                tree: ParseTree::named("Test").with("Hello"),
                 ast: json!("Hello")
             }
         );
@@ -93,10 +93,9 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("Hello World", &mut context),
+            Test::rule().parse("Hello World", &mut context).unwrap(),
             ParseResult {
                 delta: 5,
-                tree: ParseTree::named("Test").with("Hello"),
                 ast: json!({"Test": {"text": "Hello"}})
             }
         );
@@ -108,10 +107,9 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("Hello World", &mut context),
+            Test::rule().parse("Hello World", &mut context).unwrap(),
             ParseResult {
                 delta: 5,
-                tree: ParseTree::named("Test").with("Hello"),
                 ast: json!("Hello")
             }
         );
@@ -122,7 +120,10 @@ mod tests {
         rule!(struct Test: 'a' 'b');
 
         let mut context = Context::new();
-        assert_eq!(Test::rule().parse("a b", &mut context).ast, json!({}));
+        assert_eq!(
+            Test::rule().parse("a b", &mut context).unwrap().ast,
+            json!({})
+        );
     }
 
     #[test]
@@ -131,7 +132,7 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("a b", &mut context).ast,
+            Test::rule().parse("a b", &mut context).unwrap().ast,
             json!({
 			"Test": {"name": "b"}})
         );
@@ -143,46 +144,10 @@ mod tests {
         let rule = context.find_rule("Rule").unwrap();
         assert_eq!(rule.name, "Rule");
 
-        let tree_text = json!({
-            "Rule": [
-                { "RuleName": "X" },
-                ":",
-                {
-                    "Pattern": {
-                        "Alternatives": {
-                            "Sequence": [
-                                {
-                                    "Repeat": {
-                                        "AtomicPattern": {
-                                            "Text": {
-                                                "trivia": " ",
-                                                "value": "a",
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "Repeat": {
-                                        "AtomicPattern": {
-                                            "Text": {
-                                                "trivia": " ",
-                                                "value": "b",
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            ]
-        })
-        .to_string();
         assert_eq!(
-            rule.parse("X: a b", &mut context),
+            rule.parse("X: a b", &mut context).unwrap(),
             ParseResult {
                 delta: 6,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!({
                     "Rule": {
                         "name": "X",
@@ -203,36 +168,10 @@ mod tests {
         let rule = context.find_rule("Rule").unwrap();
         assert_eq!(rule.name, "Rule");
 
-        let tree_text = json!({
-            "Rule": [
-                { "RuleName": "X" },
-                ":",
-                {
-                    "Pattern": {
-                        "Alternatives": {
-                            "Sequence": [
-                                {
-                                    "Repeat": {
-                                        "AtomicPattern": {
-                                            "Regex": {
-                                                "trivia": " ",
-                                                "value": "/ab?c/",
-                                            }
-                                        }
-                                    }
-                                },
-                            ]
-                        }
-                    }
-                }
-            ]
-        })
-        .to_string();
         assert_eq!(
-            rule.parse("X: /ab?c/", &mut context),
+            rule.parse("X: /ab?c/", &mut context).unwrap(),
             ParseResult {
                 delta: 9,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!({
                     "Rule": {
                         "name": "X",
@@ -255,6 +194,7 @@ mod tests {
 
         assert_eq!(
             rule.parse("List: '(' <letters: x*> ')' => letters", &mut context)
+                .unwrap()
                 .ast,
             json!({
                 "Rule": {
@@ -289,7 +229,10 @@ mod tests {
         let rule = context.find_rule("List").unwrap();
         rule!(struct List: '(' {letters: Repeat::zero_or_more("x")} ')' => letters);
         assert_eq!(rule.as_ref(), &List::rule());
-        assert_eq!(rule.parse("(x x)", &mut context).ast, json!(["x", "x"]))
+        assert_eq!(
+            rule.parse("(x x)", &mut context).unwrap().ast,
+            json!(["x", "x"])
+        )
     }
 
     #[test]
@@ -307,6 +250,7 @@ mod tests {
 				",
                 &mut context
             )
+            .unwrap()
             .ast,
             json!({
                 "Rule": {
@@ -337,7 +281,7 @@ mod tests {
             )
         );
         assert_eq!(rule.as_ref(), &List::rule());
-        assert_eq!(rule.parse("(", &mut context).ast, json!(null))
+        assert_eq!(rule.parse("(", &mut context).unwrap().ast, json!(null))
     }
 
     #[test]
@@ -347,7 +291,9 @@ mod tests {
         assert_eq!(rule.name, "Rule");
 
         assert_eq!(
-            rule.parse("X: <ty: Type> => {} as ty", &mut context).ast,
+            rule.parse("X: <ty: Type> => {} as ty", &mut context)
+                .unwrap()
+                .ast,
             json!({
                 "Rule": {
                     "name": "X",
@@ -386,7 +332,7 @@ mod tests {
         );
         assert_eq!(rule.as_ref(), &X::rule(),);
         assert_eq!(
-            rule.parse("Person", &mut context).ast,
+            rule.parse("Person", &mut context).unwrap().ast,
             json!({"Person": {}})
         )
     }

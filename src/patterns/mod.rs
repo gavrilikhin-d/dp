@@ -18,10 +18,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     bootstrap::rules::Alternatives,
-    errors::Expected,
+    errors::{Error, Expected},
     expr,
     parsers::{ParseResult, Parser},
-    rule, seq, Context, Expression, ParseTreeNode, Token,
+    rule, seq, Context, Expression,
 };
 
 /// Possible patterns
@@ -226,7 +226,12 @@ impl<N: Into<String>, P: Into<Pattern>> From<(N, P)> for Pattern {
 }
 
 impl Parser for Pattern {
-    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> ParseResult<'s> {
+    fn parse_at<'s>(
+        &self,
+        source: &'s str,
+        at: usize,
+        context: &mut Context,
+    ) -> Result<ParseResult, Error> {
         match self {
             Pattern::Text(text) => {
                 Pattern::Regex(regex::escape(text)).parse_at(source, at, context)
@@ -239,31 +244,31 @@ impl Parser for Pattern {
 
                 let re = Regex::new(format!("^{r}").as_str()).expect("Invalid regex");
                 let m = re.find(&source[at + trivia_size..]).map(|m| m.as_str());
-                ParseResult {
-                    delta: m.map(|m| trivia_size + m.len()).unwrap_or(0),
-                    tree: m
-                        .map(|m| {
-                            ParseTreeNode::from(Token {
-                                value: m,
-                                trivia: &source[at..at + trivia_size],
-                            })
-                            .into()
-                        })
-                        .unwrap_or_else(|| {
-                            Expected {
-                                expected: r.clone(),
-                                at: at.into(),
-                            }
-                            .into()
-                        }),
-                    ast: m.into(),
+                if m.is_none() {
+                    return Err(Expected {
+                        expected: r.clone(),
+                        at: at.into(),
+                    }
+                    .into());
                 }
+
+                let m = m.unwrap();
+                Ok(ParseResult {
+                    delta: trivia_size + m.len(),
+                    ast: m.into(),
+                })
             }
             Pattern::RuleReference(r) => r.parse_at(source, at, context),
             Pattern::Sequence(s) => s.parse_at(source, at, context),
             Pattern::Alternatives(alts) => {
-                let mut res = ParseResult::empty();
-                for alt in alts {
+                debug_assert!(alts.len() >= 2);
+
+                let mut res = alts[0].parse_at(source, at, context);
+                if res.is_ok() {
+                    return res;
+                }
+
+                for alt in alts[1..].iter() {
                     res = alt.parse_at(source, at, context);
                     if res.is_ok() {
                         break;
@@ -279,7 +284,7 @@ impl Parser for Pattern {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{json, Value};
+    use serde_json::json;
 
     use pretty_assertions::assert_eq;
 
@@ -287,7 +292,7 @@ mod test {
         errors::Expected,
         parsers::{ParseResult, Parser},
         patterns::Named,
-        Context, ParseTree, ParseTreeNode, Pattern,
+        Context, Pattern,
     };
 
     #[test]
@@ -296,10 +301,9 @@ mod test {
         let pattern: Pattern = "()".into();
         assert_eq!(pattern, Pattern::Text("()".into()));
         assert_eq!(
-            pattern.parse("()", &mut context),
+            pattern.parse("()", &mut context).unwrap(),
             ParseResult {
                 delta: 2,
-                tree: "()".into(),
                 ast: json!("()")
             }
         );
@@ -311,10 +315,9 @@ mod test {
         let pattern: Pattern = r"/[^\s]+/".into();
         assert_eq!(pattern, Pattern::Regex(r"[^\s]+".into()));
         assert_eq!(
-            pattern.parse("hello world", &mut context),
+            pattern.parse("hello world", &mut context).unwrap(),
             ParseResult {
                 delta: 5,
-                tree: "hello".into(),
                 ast: json!("hello")
             }
         );
@@ -325,32 +328,26 @@ mod test {
         let mut context = Context::default();
         let pattern = Pattern::Alternatives(vec!["a".into(), "b".into()]);
         assert_eq!(
-            pattern.parse("a", &mut context),
+            pattern.parse("a", &mut context).unwrap(),
             ParseResult {
                 delta: 1,
-                tree: "a".into(),
                 ast: json!("a")
             }
         );
         assert_eq!(
-            pattern.parse("b", &mut context),
+            pattern.parse("b", &mut context).unwrap(),
             ParseResult {
                 delta: 1,
-                tree: "b".into(),
                 ast: json!("b")
             }
         );
         assert_eq!(
-            pattern.parse("c", &mut context),
-            ParseResult {
-                delta: 0,
-                tree: Expected {
-                    expected: "b".to_string(),
-                    at: 0
-                }
-                .into(),
-                ast: Value::Null
+            pattern.parse("c", &mut context).unwrap_err(),
+            Expected {
+                expected: "b".to_string(),
+                at: 0
             }
+            .into()
         );
     }
 
@@ -359,51 +356,35 @@ mod test {
         let mut context = Context::default();
         let pattern = Pattern::Sequence(vec!["a".into(), "b".into()].into());
         assert_eq!(
-            pattern.parse("ab", &mut context),
+            pattern.parse("ab", &mut context).unwrap(),
             ParseResult {
                 delta: 2,
-                tree: vec!["a", "b"].into(),
                 ast: json!({})
             }
         );
         assert_eq!(
-            pattern.parse("b", &mut context),
-            ParseResult {
-                delta: 0,
-                tree: vec![ParseTreeNode::from(Expected {
-                    expected: "a".to_string(),
-                    at: 0
-                }),]
-                .into(),
-                ast: json!(null)
+            pattern.parse("b", &mut context).unwrap_err(),
+            Expected {
+                expected: "a".to_string(),
+                at: 0
             }
+            .into()
         );
         assert_eq!(
-            pattern.parse("a", &mut context),
-            ParseResult {
-                delta: 1,
-                tree: vec![
-                    "a".into(),
-                    ParseTreeNode::from(Expected {
-                        expected: "b".to_string(),
-                        at: 1
-                    })
-                ]
-                .into(),
-                ast: json!(null)
+            pattern.parse("a", &mut context).unwrap_err(),
+            Expected {
+                expected: "b".to_string(),
+                at: 1
             }
+            .into()
         );
         assert_eq!(
-            pattern.parse("", &mut context),
-            ParseResult {
-                delta: 0,
-                tree: vec![ParseTreeNode::from(Expected {
-                    expected: "a".to_string(),
-                    at: 0
-                })]
-                .into(),
-                ast: json!(null)
+            pattern.parse("", &mut context).unwrap_err(),
+            Expected {
+                expected: "a".to_string(),
+                at: 0
             }
+            .into()
         )
     }
 
@@ -412,10 +393,9 @@ mod test {
         let mut context = Context::default();
         let pattern = crate::rule_ref!("Text");
         assert_eq!(
-            pattern.parse("abc", &mut context),
+            pattern.parse("abc", &mut context).unwrap(),
             ParseResult {
                 delta: 3,
-                tree: ParseTree::named("Text").with("abc"),
                 ast: json!("abc")
             }
         )
@@ -433,10 +413,9 @@ mod test {
         }
         .into();
         assert_eq!(
-            pattern.parse("John", &mut context),
+            pattern.parse("John", &mut context).unwrap(),
             ParseResult {
                 delta: 4,
-                tree: "John".into(),
                 ast: json!({"name": "John"}),
             }
         );

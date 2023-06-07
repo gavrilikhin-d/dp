@@ -20,7 +20,7 @@ rule!(struct Char: r"/'.'/");
 fn char() {
     let mut context = Context::default();
     let r = Char::rule();
-    assert_eq!(r.parse("'c'", &mut context).ast, json!('c'));
+    assert_eq!(r.parse("'c'", &mut context).unwrap().ast, json!('c'));
 }
 
 rule!(struct Integer: r"/[0-9]+/");
@@ -28,11 +28,11 @@ rule!(struct Integer: r"/[0-9]+/");
 fn integer() {
     let mut context = Context::default();
     let r = Integer::rule();
-    assert_eq!(r.parse("123", &mut context).ast, json!(123));
+    assert_eq!(r.parse("123", &mut context).unwrap().ast, json!(123));
 
     let big_integer = "99999999999999999999999999999999";
     assert_eq!(
-        r.parse(big_integer, &mut context).ast,
+        r.parse(big_integer, &mut context).unwrap().ast,
         json!({ "Integer": big_integer })
     );
 }
@@ -42,7 +42,7 @@ rule!(String: "/\"([^\"\\\\]|\\.)*\"/");
 fn string() {
     let mut context = Context::default();
     let r = String::rule();
-    assert_eq!(r.parse("\"str\"", &mut context).ast, json!("str"));
+    assert_eq!(r.parse("\"str\"", &mut context).unwrap().ast, json!("str"));
 }
 
 rule!(
@@ -54,9 +54,9 @@ rule!(
 fn text() {
     let mut context = Context::default();
     let r = Text::rule();
-    assert_eq!(r.parse("'c'", &mut context).ast, json!('c'));
-    assert_eq!(r.parse("\"str\"", &mut context).ast, json!("str"));
-    assert_eq!(r.parse("text", &mut context).ast, json!("text"));
+    assert_eq!(r.parse("'c'", &mut context).unwrap().ast, json!('c'));
+    assert_eq!(r.parse("\"str\"", &mut context).unwrap().ast, json!("str"));
+    assert_eq!(r.parse("text", &mut context).unwrap().ast, json!("text"));
 }
 
 rule!(struct Regex: r"//[^/]+//");
@@ -64,7 +64,7 @@ rule!(struct Regex: r"//[^/]+//");
 fn regex() {
     let mut context = Context::default();
     let r = Regex::rule();
-    assert_eq!(r.parse("/ax?/", &mut context).ast, json!("/ax?/"));
+    assert_eq!(r.parse("/ax?/", &mut context).unwrap().ast, json!("/ax?/"));
 }
 
 rule!(struct RuleName: r"/[A-Z][a-zA-Z0-9]*/");
@@ -72,7 +72,7 @@ rule!(struct RuleName: r"/[A-Z][a-zA-Z0-9]*/");
 fn rule_name() {
     let mut context = Context::default();
     let r = RuleName::rule();
-    assert_eq!(r.parse("Rule", &mut context).ast, json!("Rule"));
+    assert_eq!(r.parse("Rule", &mut context).unwrap().ast, json!("Rule"));
 }
 
 rule!(
@@ -83,7 +83,7 @@ fn rule_reference() {
     let mut context = Context::default();
     let r = RuleReference::rule();
     assert_eq!(
-        r.parse("RuleName", &mut context).ast,
+        r.parse("RuleName", &mut context).unwrap().ast,
         json!({"RuleReference": "RuleName"})
     );
 }
@@ -93,7 +93,7 @@ rule!(struct Identifier: r"/[a-z_][a-zA-Z0-9_]*/");
 fn identifier() {
     let mut context = Context::default();
     let r = Identifier::rule();
-    assert_eq!(r.parse("name", &mut context).ast, json!("name"));
+    assert_eq!(r.parse("name", &mut context).unwrap().ast, json!("name"));
 }
 
 rule!(struct Typename: "/[A-Z][a-zA-Z_0-9]*/");
@@ -101,7 +101,7 @@ rule!(struct Typename: "/[A-Z][a-zA-Z_0-9]*/");
 fn typename() {
     let mut context = Context::default();
     let r = Typename::rule();
-    assert_eq!(r.parse("Type", &mut context).ast, json!("Type"));
+    assert_eq!(r.parse("Type", &mut context).unwrap().ast, json!("Type"));
 }
 
 rule!(struct Variable: {name: Identifier} => cast!(Variable(name)));
@@ -109,7 +109,10 @@ rule!(struct Variable: {name: Identifier} => cast!(Variable(name)));
 fn variable() {
     let mut context = Context::default();
     let r = Variable::rule();
-    assert_eq!(r.parse("var", &mut context).ast, json!({"Variable": "var"}));
+    assert_eq!(
+        r.parse("var", &mut context).unwrap().ast,
+        json!({"Variable": "var"})
+    );
 }
 
 rule!(struct Type: { alts!(Typename | Variable) });
@@ -117,8 +120,11 @@ rule!(struct Type: { alts!(Typename | Variable) });
 fn ty() {
     let mut context = Context::default();
     let r = Type::rule();
-    assert_eq!(r.parse("Type", &mut context).ast, json!("Type"));
-    assert_eq!(r.parse("var", &mut context).ast, json!({"Variable": "var"}));
+    assert_eq!(r.parse("Type", &mut context).unwrap().ast, json!("Type"));
+    assert_eq!(
+        r.parse("var", &mut context).unwrap().ast,
+        json!({"Variable": "var"})
+    );
 }
 
 rule!(
@@ -136,10 +142,10 @@ rule!(
 fn value() {
     let mut context = Context::default();
     let r = Value::rule();
-    assert_eq!(r.parse("'c'", &mut context).ast, json!('c'));
-    assert_eq!(r.parse("\"str\"", &mut context).ast, json!("str"));
-    assert_eq!(r.parse("123", &mut context).ast, json!(123));
-    assert_eq!(r.parse("{}", &mut context).ast, json!({}));
+    assert_eq!(r.parse("'c'", &mut context).unwrap().ast, json!('c'));
+    assert_eq!(r.parse("\"str\"", &mut context).unwrap().ast, json!("str"));
+    assert_eq!(r.parse("123", &mut context).unwrap().ast, json!(123));
+    assert_eq!(r.parse("{}", &mut context).unwrap().ast, json!({}));
 }
 
 rule!(
@@ -154,9 +160,9 @@ rule!(
 fn object() {
     let mut context = Context::default();
     let r = Object::rule();
-    assert_eq!(r.parse("{}", &mut context).ast, json!({}));
+    assert_eq!(r.parse("{}", &mut context).unwrap().ast, json!({}));
     assert_eq!(
-        r.parse("{a: 1, b: 2}", &mut context).ast,
+        r.parse("{a: 1, b: 2}", &mut context).unwrap().ast,
         json!({"a": 1, "b": 2})
     );
 }
@@ -173,14 +179,20 @@ rule!(
 fn non_empty_object() {
     let mut context = Context::default();
     let r = NonEmptyObject::rule();
-    assert_eq!(r.parse("{a: 1}", &mut context).ast, json!({"a": 1}));
-    assert_eq!(r.parse("{a: 1,}", &mut context).ast, json!({"a": 1}));
     assert_eq!(
-        r.parse("{a: 1, b: 2}", &mut context).ast,
+        r.parse("{a: 1}", &mut context).unwrap().ast,
+        json!({"a": 1})
+    );
+    assert_eq!(
+        r.parse("{a: 1,}", &mut context).unwrap().ast,
+        json!({"a": 1})
+    );
+    assert_eq!(
+        r.parse("{a: 1, b: 2}", &mut context).unwrap().ast,
         json!({"a": 1, "b": 2})
     );
     assert_eq!(
-        r.parse("{a: 1, b: 2,}", &mut context).ast,
+        r.parse("{a: 1, b: 2,}", &mut context).unwrap().ast,
         json!({"a": 1, "b": 2})
     );
 }
@@ -191,7 +203,7 @@ fn return_() {
     let mut context = Context::default();
     let r = Return::rule();
     assert_eq!(
-        r.parse("1", &mut context).ast,
+        r.parse("1", &mut context).unwrap().ast,
         json!({
             "Return": 1
         })
@@ -204,7 +216,7 @@ fn throw() {
     let mut context = Context::default();
     let r = Throw::rule();
     assert_eq!(
-        r.parse("throw 1", &mut context).ast,
+        r.parse("throw 1", &mut context).unwrap().ast,
         json!({
             "Throw": 1
         })
@@ -231,9 +243,9 @@ rule!(
 fn atomic_pattern() {
     let mut context = Context::default();
     let r = AtomicPattern::rule();
-    assert_eq!(r.parse("(x)", &mut context).ast, json!("x"));
+    assert_eq!(r.parse("(x)", &mut context).unwrap().ast, json!("x"));
     assert_eq!(
-        r.parse("<name: x>", &mut context).ast,
+        r.parse("<name: x>", &mut context).unwrap().ast,
         json!({
             "Named": {
                 "name": "name",
@@ -242,13 +254,13 @@ fn atomic_pattern() {
         })
     );
     assert_eq!(
-        r.parse("RuleName", &mut context).ast,
+        r.parse("RuleName", &mut context).unwrap().ast,
         json!({
             "RuleReference": "RuleName"
         })
     );
-    assert_eq!(r.parse("/x/", &mut context).ast, json!("/x/"));
-    assert_eq!(r.parse("x", &mut context).ast, json!("x"));
+    assert_eq!(r.parse("/x/", &mut context).unwrap().ast, json!("/x/"));
+    assert_eq!(r.parse("x", &mut context).unwrap().ast, json!("x"));
 }
 
 rule!(
@@ -260,13 +272,13 @@ rule!(
 fn alternatives() {
     let mut context = Context::default();
     let r = Alternatives::rule();
-    assert_eq!(r.parse("x", &mut context).ast, json!("x"));
+    assert_eq!(r.parse("x", &mut context).unwrap().ast, json!("x"));
     assert_eq!(
-        r.parse("x | y", &mut context).ast,
+        r.parse("x | y", &mut context).unwrap().ast,
         json!({"Alternatives": ["x", "y"]})
     );
     assert_eq!(
-        r.parse("x y | z | f g", &mut context).ast,
+        r.parse("x y | z | f g", &mut context).unwrap().ast,
         json!({"Alternatives": [["x", "y"], "z", ["f", "g"]]})
     );
 }
@@ -282,7 +294,7 @@ fn distinct_object() {
     let mut context = Context::default();
     let r = DistinctObject::rule();
     assert_eq!(
-        r.parse("Type {}", &mut context).ast,
+        r.parse("Type {}", &mut context).unwrap().ast,
         json!({
             "Type": {}
         })
@@ -302,37 +314,37 @@ fn distinct_value() {
     let mut context = Context::default();
     let r = DistinctValue::rule();
     assert_eq!(
-        r.parse("Type(1)", &mut context).ast,
+        r.parse("Type(1)", &mut context).unwrap().ast,
         json!({
             "Type": 1
         })
     );
     assert_eq!(
-        r.parse("Type('c')", &mut context).ast,
+        r.parse("Type('c')", &mut context).unwrap().ast,
         json!({
             "Type": 'c'
         })
     );
     assert_eq!(
-        r.parse("Type(\"str\")", &mut context).ast,
+        r.parse("Type(\"str\")", &mut context).unwrap().ast,
         json!({
             "Type": "str"
         })
     );
     assert_eq!(
-        r.parse("Type({})", &mut context).ast,
+        r.parse("Type({})", &mut context).unwrap().ast,
         json!({
             "Type": {}
         })
     );
     assert_eq!(
-        r.parse("Type({a: 1})", &mut context).ast,
+        r.parse("Type({a: 1})", &mut context).unwrap().ast,
         json!({
             "Type": {"a": 1}
         })
     );
     assert_eq!(
-        r.parse("Foo( Bar { a: 1 } )", &mut context).ast,
+        r.parse("Foo( Bar { a: 1 } )", &mut context).unwrap().ast,
         json!({
             "Foo": {
                 "Bar": {
@@ -353,13 +365,13 @@ fn distinct() {
     let mut context = Context::default();
     let r = Distinct::rule();
     assert_eq!(
-        r.parse("Type {}", &mut context).ast,
+        r.parse("Type {}", &mut context).unwrap().ast,
         json!({
             "Type": {}
         })
     );
     assert_eq!(
-        r.parse("Type(1)", &mut context).ast,
+        r.parse("Type(1)", &mut context).unwrap().ast,
         json!({
             "Type": 1
         })

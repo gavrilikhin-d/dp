@@ -2,6 +2,7 @@ use derive_more::From;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    errors::Error,
     parsers::{ParseResult, Parser},
     Rule,
 };
@@ -25,7 +26,7 @@ impl Parser for RuleReference {
         source: &'s str,
         at: usize,
         context: &mut crate::Context,
-    ) -> ParseResult<'s> {
+    ) -> Result<ParseResult, Error> {
         match self {
             Self::Weak(name) => {
                 let rule = context.find_rule(name).expect("Rule not found");
@@ -48,10 +49,10 @@ mod tests {
         let mut context = Context::default();
         let r = rule_ref!("Text");
         assert_eq!(r, Pattern::RuleReference(Box::new("Text".into())));
-        assert_eq!(r.parse("text", &mut context).ast, json!("text"));
+        assert_eq!(r.parse("text", &mut context).unwrap().ast, json!("text"));
 
         let r = rule_ref!(Text);
         assert_eq!(r, Pattern::RuleReference(Box::new("Text".into())));
-        assert_eq!(r.parse("text", &mut context).ast, json!("text"));
+        assert_eq!(r.parse("text", &mut context).unwrap().ast, json!("text"));
     }
 }

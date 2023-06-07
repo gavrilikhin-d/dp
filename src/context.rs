@@ -154,7 +154,7 @@ mod test {
         bootstrap::rules::Root,
         errors::Expected,
         parsers::{ParseResult, Parser},
-        Context, ParseTree, Rule, UnderlyingRule,
+        Context, Rule, UnderlyingRule,
     };
 
     #[test]
@@ -162,7 +162,7 @@ mod test {
         let mut context = Context::default();
         let r = context.find_rule("Type").unwrap();
         assert_eq!(r.name, "Type");
-        assert_eq!(r.parse("Type", &mut context).ast, json!("Type"));
+        assert_eq!(r.parse("Type", &mut context).unwrap().ast, json!("Type"));
     }
 
     #[test]
@@ -171,7 +171,9 @@ mod test {
         let r = context.find_rule("Cast").unwrap();
         assert_eq!(r.name, "Cast");
         assert_eq!(
-            r.parse("{ name: \"Igor\" } as Person", &mut context).ast,
+            r.parse("{ name: \"Igor\" } as Person", &mut context)
+                .unwrap()
+                .ast,
             json!({"Cast": {"expr": { "name": "Igor" }, "ty": "Person"}})
         );
     }
@@ -181,9 +183,12 @@ mod test {
         let mut context = Context::default();
         let r = context.find_rule("Action").unwrap();
         assert_eq!(r.name, "Action");
-        assert_eq!(r.parse("=> 'x'", &mut context).ast, json!({"Return": 'x'}));
         assert_eq!(
-            r.parse("=> throw x", &mut context).ast,
+            r.parse("=> 'x'", &mut context).unwrap().ast,
+            json!({"Return": 'x'})
+        );
+        assert_eq!(
+            r.parse("=> throw x", &mut context).unwrap().ast,
             json!({
                 "Throw": {
                         "Variable": "x"
@@ -198,11 +203,12 @@ mod test {
         let r = context.find_rule("Throw").unwrap();
         assert_eq!(r.name, "Throw");
         assert_eq!(
-            r.parse("throw 'x'", &mut context).ast,
+            r.parse("throw 'x'", &mut context).unwrap().ast,
             json!({"Throw": 'x'})
         );
         assert_eq!(
             r.parse("throw { message: \"msg\"} as CustomError", &mut context)
+                .unwrap()
                 .ast,
             json!({
                 "Throw": {
@@ -222,7 +228,10 @@ mod test {
         let mut context = Context::default();
         let r = context.find_rule("Return").unwrap();
         assert_eq!(r.name, "Return");
-        assert_eq!(r.parse("'x'", &mut context).ast, json!({"Return": 'x'}));
+        assert_eq!(
+            r.parse("'x'", &mut context).unwrap().ast,
+            json!({"Return": 'x'})
+        );
     }
 
     #[test]
@@ -230,10 +239,13 @@ mod test {
         let mut ctx = Context::default();
         let r = ctx.find_rule("Object").unwrap();
         assert_eq!(r.name, "Object");
-        assert_eq!(r.parse("{}", &mut ctx).ast, json!({}));
-        assert_eq!(r.parse("{x: \"x\"}", &mut ctx).ast, json!({"x": "x"}));
+        assert_eq!(r.parse("{}", &mut ctx).unwrap().ast, json!({}));
         assert_eq!(
-            r.parse("{x: 'x', y: {},}", &mut ctx).ast,
+            r.parse("{x: \"x\"}", &mut ctx).unwrap().ast,
+            json!({"x": "x"})
+        );
+        assert_eq!(
+            r.parse("{x: 'x', y: {},}", &mut ctx).unwrap().ast,
             json!({'x': 'x', 'y': {}})
         );
     }
@@ -243,15 +255,18 @@ mod test {
         let mut ctx = Context::default();
         let r = ctx.find_rule("Expression").unwrap();
         assert_eq!(r.name, "Expression");
-        assert_eq!(r.parse("{}", &mut ctx).ast, json!({}));
+        assert_eq!(r.parse("{}", &mut ctx).unwrap().ast, json!({}));
         assert_eq!(
-            r.parse("{} as Person", &mut ctx).ast,
+            r.parse("{} as Person", &mut ctx).unwrap().ast,
             json!({"Cast": { "expr": {}, "ty": "Person" }})
         );
-        assert_eq!(r.parse("'('", &mut ctx).ast, json!('('));
-        assert_eq!(r.parse("\"()\"", &mut ctx).ast, json!("()"));
-        assert_eq!(r.parse("x", &mut ctx).ast, json!({ "Variable": "x" }));
-        assert_eq!(r.parse("123", &mut ctx).ast, json!(123));
+        assert_eq!(r.parse("'('", &mut ctx).unwrap().ast, json!('('));
+        assert_eq!(r.parse("\"()\"", &mut ctx).unwrap().ast, json!("()"));
+        assert_eq!(
+            r.parse("x", &mut ctx).unwrap().ast,
+            json!({ "Variable": "x" })
+        );
+        assert_eq!(r.parse("123", &mut ctx).unwrap().ast, json!(123));
     }
 
     #[test]
@@ -259,11 +274,11 @@ mod test {
         let mut ctx = Context::default();
         let r = ctx.find_rule("Integer").unwrap();
         assert_eq!(r.name, "Integer");
-        assert_eq!(r.parse("123", &mut ctx).ast, json!(123));
+        assert_eq!(r.parse("123", &mut ctx).unwrap().ast, json!(123));
 
         let big_integer = "99999999999999999999999999999999";
         assert_eq!(
-            r.parse(big_integer, &mut ctx).ast,
+            r.parse(big_integer, &mut ctx).unwrap().ast,
             json!({ "Integer": big_integer })
         );
     }
@@ -273,7 +288,10 @@ mod test {
         let mut ctx = Context::default();
         let r = ctx.find_rule("Variable").unwrap();
         assert_eq!(r.name, "Variable");
-        assert_eq!(r.parse("x", &mut ctx).ast, json!({ "Variable": "x" }));
+        assert_eq!(
+            r.parse("x", &mut ctx).unwrap().ast,
+            json!({ "Variable": "x" })
+        );
     }
 
     #[test]
@@ -281,7 +299,7 @@ mod test {
         let mut ctx = Context::default();
         let r = ctx.find_rule("FieldInitializer").unwrap();
         assert_eq!(r.name, "FieldInitializer");
-        assert_eq!(r.parse("x: 'x'", &mut ctx).ast, json!({"x": "x"}));
+        assert_eq!(r.parse("x: 'x'", &mut ctx).unwrap().ast, json!({"x": "x"}));
     }
 
     #[test]
@@ -289,7 +307,7 @@ mod test {
         let mut ctx = Context::default();
         let rule_name = ctx.find_rule("Char").unwrap();
         assert_eq!(rule_name.name, "Char");
-        assert_eq!(rule_name.parse("'x'", &mut ctx).ast, json!("x"));
+        assert_eq!(rule_name.parse("'x'", &mut ctx).unwrap().ast, json!("x"));
     }
 
     #[test]
@@ -297,7 +315,10 @@ mod test {
         let mut ctx = Context::default();
         let rule_name = ctx.find_rule("String").unwrap();
         assert_eq!(rule_name.name, "String");
-        assert_eq!(rule_name.parse("\"abc\"", &mut ctx).ast, json!("abc"));
+        assert_eq!(
+            rule_name.parse("\"abc\"", &mut ctx).unwrap().ast,
+            json!("abc")
+        );
     }
 
     #[test]
@@ -306,34 +327,27 @@ mod test {
         let rule_name = ctx.find_rule("RuleName").unwrap();
         assert_eq!(rule_name.name, "RuleName");
         assert_eq!(
-            rule_name.parse("Foo", &mut ctx),
+            rule_name.parse("Foo", &mut ctx).unwrap(),
             ParseResult {
                 delta: 3,
-                tree: ParseTree::named("RuleName").with("Foo"),
                 ast: json!("Foo")
             }
         );
         assert_eq!(
-            rule_name.parse("foo", &mut ctx),
-            ParseResult {
-                delta: 0,
-                tree: ParseTree::named("RuleName").with(Expected {
-                    expected: "[A-Z][a-zA-Z0-9]*".into(),
-                    at: 0
-                }),
-                ast: json!(null)
+            rule_name.parse("foo", &mut ctx).unwrap_err(),
+            Expected {
+                expected: "[A-Z][a-zA-Z0-9]*".into(),
+                at: 0
             }
+            .into()
         );
         assert_eq!(
-            rule_name.parse("", &mut ctx),
-            ParseResult {
-                delta: 0,
-                tree: ParseTree::named("RuleName").with(Expected {
-                    expected: "[A-Z][a-zA-Z0-9]*".into(),
-                    at: 0
-                }),
-                ast: json!(null)
+            rule_name.parse("", &mut ctx).unwrap_err(),
+            Expected {
+                expected: "[A-Z][a-zA-Z0-9]*".into(),
+                at: 0
             }
+            .into()
         );
     }
 
@@ -342,7 +356,7 @@ mod test {
         let mut ctx = Context::default();
         let r = ctx.find_rule("Identifier").unwrap();
         assert_eq!(r.name, "Identifier");
-        assert_eq!(r.parse("foo", &mut ctx).ast, json!("foo"));
+        assert_eq!(r.parse("foo", &mut ctx).unwrap().ast, json!("foo"));
     }
 
     #[test]
@@ -352,7 +366,7 @@ mod test {
         assert_eq!(r.name, "Named");
 
         assert_eq!(
-            r.parse("<name: /[a-z]+/>", &mut ctx).ast,
+            r.parse("<name: /[a-z]+/>", &mut ctx).unwrap().ast,
             json!({"Named": { "name": "name", "pattern": "/[a-z]+/" }})
         );
     }
@@ -363,11 +377,9 @@ mod test {
         let r = context.find_rule("RuleReference").unwrap();
         assert_eq!(r.name, "RuleReference");
         assert_eq!(
-            r.parse("Foo", &mut context),
+            r.parse("Foo", &mut context).unwrap(),
             ParseResult {
                 delta: 3,
-                tree: ParseTree::named("RuleReference")
-                    .with(ParseTree::named("RuleName").with("Foo")),
                 ast: json!({"RuleReference": "Foo"})
             }
         );
@@ -378,86 +390,36 @@ mod test {
         let r = context.find_rule("AtomicPattern").unwrap();
         assert_eq!(r.name, "AtomicPattern");
 
-        let tree_text = json!({
-            "AtomicPattern": {
-                "RuleReference": {
-                    "RuleName": "Foo"
-                }
-            }
-        })
-        .to_string();
         assert_eq!(
-            r.parse("Foo", &mut context),
+            r.parse("Foo", &mut context).unwrap(),
             ParseResult {
                 delta: 3,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!({
                     "RuleReference": "Foo"
                 })
             }
         );
 
-        let tree_text = json!({
-            "AtomicPattern": {
-                "Text": "foo"
-            }
-        })
-        .to_string();
         assert_eq!(
-            r.parse("foo", &mut context),
+            r.parse("foo", &mut context).unwrap(),
             ParseResult {
                 delta: 3,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!("foo")
             }
         );
 
-        let tree_text = json!({
-            "AtomicPattern": {
-                "Regex": "/(xyz?)/"
-            }
-        })
-        .to_string();
         assert_eq!(
-            r.parse("/(xyz?)/", &mut context),
+            r.parse("/(xyz?)/", &mut context).unwrap(),
             ParseResult {
                 delta: 8,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!("/(xyz?)/")
             }
         );
 
-        let tree_text = json!({
-            "AtomicPattern": [
-                "(",
-                {
-                    "Pattern": {
-                        "Alternatives": {
-                            "Sequence": {
-                                "Repeat": {
-                                    "AtomicPattern": {
-                                        "Text": {
-                                            "value": "bar",
-                                            "trivia": " "
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                {
-                    "value": ")",
-                    "trivia": " "
-                }
-            ]
-        })
-        .to_string();
         assert_eq!(
-            r.parse("( bar )", &mut context),
+            r.parse("( bar )", &mut context).unwrap(),
             ParseResult {
                 delta: 7,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!("bar")
             }
         );
@@ -469,38 +431,10 @@ mod test {
         let r = context.find_rule("Sequence").unwrap();
         assert_eq!(r.name, "Sequence");
 
-        let tree_text = json!({
-            "Sequence": [
-                {
-                    "Repeat": {
-                        "AtomicPattern": {
-                            "RuleReference": {
-                                "RuleName": "Foo"
-                            }
-                        }
-                    }
-                },
-                {
-                    "Repeat": [
-                        {
-                            "AtomicPattern": {
-                                "Text": {
-                                    "value": "bar",
-                                    "trivia": " "
-                                }
-                            }
-                        },
-                        "?"
-                    ]
-                }
-            ]
-        })
-        .to_string();
         assert_eq!(
-            r.parse("Foo bar?", &mut context),
+            r.parse("Foo bar?", &mut context).unwrap(),
             ParseResult {
                 delta: 8,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!([
                 {
                     "RuleReference": "Foo"
@@ -514,7 +448,9 @@ mod test {
             }
         );
         assert_eq!(
-            r.parse("'(' <l: /[a-z]/> ')' => l", &mut context).ast,
+            r.parse("'(' <l: /[a-z]/> ')' => l", &mut context)
+                .unwrap()
+                .ast,
             json!({"Sequence": {
                 "patterns": [
                     '(',
@@ -542,7 +478,7 @@ mod test {
         assert_eq!(r.name, "Alternatives");
 
         assert_eq!(
-            r.parse("a | b", &mut context).ast,
+            r.parse("a | b", &mut context).unwrap().ast,
             json!({
                 "Alternatives": [
                     "a",
@@ -551,10 +487,10 @@ mod test {
             })
         );
 
-        assert_eq!(r.parse("a", &mut context).ast, json!("a"));
+        assert_eq!(r.parse("a", &mut context).unwrap().ast, json!("a"));
 
         assert_eq!(
-            r.parse("a b | c d | e", &mut context).ast,
+            r.parse("a b | c d | e", &mut context).unwrap().ast,
             json!({"Alternatives": [
                 ["a", "b"],
                 ["c", "d"],
@@ -569,30 +505,10 @@ mod test {
         let r = context.find_rule("Pattern").unwrap();
         assert_eq!(r.name, "Pattern");
 
-        let tree_text = json!({
-            "Pattern": {
-                "Alternatives": {
-                    "Sequence": {
-                        "Repeat": [
-                            {
-                                "AtomicPattern": {
-                                    "RuleReference": {
-                                        "RuleName": "Foo"
-                                    }
-                                }
-                            },
-                            "?"
-                        ]
-                    }
-                }
-            },
-        })
-        .to_string();
         assert_eq!(
-            r.parse("Foo?", &mut context),
+            r.parse("Foo?", &mut context).unwrap(),
             ParseResult {
                 delta: 4,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!({
                     "Repeat": {
                         "pattern": {
@@ -604,28 +520,10 @@ mod test {
             }
         );
 
-        let tree_text = json!({
-            "Pattern": {
-                "Alternatives": {
-                    "Sequence": {
-                        "Repeat": [
-                            {
-                                "AtomicPattern": {
-                                    "Text": "foo"
-                                }
-                            },
-                            "*"
-                        ]
-                    }
-                }
-            }
-        })
-        .to_string();
         assert_eq!(
-            r.parse("foo*", &mut context),
+            r.parse("foo*", &mut context).unwrap(),
             ParseResult {
                 delta: 4,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!({
                     "Repeat": {
                         "pattern": "foo"
@@ -634,42 +532,10 @@ mod test {
             }
         );
 
-        let tree_text = json!({
-            "Pattern": {
-                "Alternatives": {
-                    "Sequence": {
-                        "Repeat": [
-                            {
-                                "AtomicPattern": [
-                                    "(",
-                                    {
-                                        "Pattern": {
-                                            "Alternatives": {
-                                                "Sequence": {
-                                                    "Repeat": {
-                                                        "AtomicPattern": {
-                                                            "Text": "bar"
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    ")"
-                                ]
-                            },
-                            "+"
-                        ]
-                    }
-                }
-            }
-        })
-        .to_string();
         assert_eq!(
-            r.parse("(bar)+", &mut context),
+            r.parse("(bar)+", &mut context).unwrap(),
             ParseResult {
                 delta: 6,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!({
                     "Repeat": {
                         "pattern": "bar",
@@ -686,34 +552,10 @@ mod test {
         let r = context.find_rule("Rule").unwrap();
         assert_eq!(r.name, "Rule");
 
-        let tree_text = json!({
-            "Rule": [
-                { "RuleName": "Lol" },
-                ":",
-                {
-                    "Pattern": {
-                        "Alternatives": {
-                            "Sequence": {
-                                "Repeat": {
-                                    "AtomicPattern": {
-                                        "Text": {
-                                            "value": "kek",
-                                            "trivia": " "
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            ]
-        })
-        .to_string();
         assert_eq!(
-            r.parse("Lol: kek", &mut context),
+            r.parse("Lol: kek", &mut context).unwrap(),
             ParseResult {
                 delta: 8,
-                tree: serde_json::from_str(&tree_text).unwrap(),
                 ast: json!({
                     "Rule": {
                         "name": "Lol",
