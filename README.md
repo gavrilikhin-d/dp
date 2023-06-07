@@ -28,7 +28,7 @@ Y: X // Same as Y: b
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
 * [ ] Add syntax highlighting
-* [ ] Support left-recursion
+* [x] Support left-recursion
 * [x] Packrat parsing (only caching rules)
 * [ ] Add documentation
 * [ ] Simplify separated patterns

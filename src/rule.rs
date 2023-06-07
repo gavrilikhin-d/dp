@@ -1,9 +1,14 @@
+use std::{
+    collections::HashMap,
+    sync::{LazyLock, Mutex},
+};
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{
     bootstrap::rules::RuleName,
-    errors::Error,
+    errors::{CustomError, Error, Severity},
     parsers::{ParseResult, Parser},
     rule, source_id, Context, Key, Pattern,
 };
@@ -43,6 +48,13 @@ impl Rule {
             id: self.name.clone(),
         }
     }
+
+    /// Do something with call depth of this function
+    fn using_call_depth<R>(&self, f: impl FnOnce(&mut usize) -> R) -> R {
+        static DEPTH: LazyLock<Mutex<HashMap<String, usize>>> =
+            LazyLock::new(|| Mutex::new(HashMap::new()));
+        f(DEPTH.lock().unwrap().entry(self.name.clone()).or_default())
+    }
 }
 
 impl Parser for Rule {
@@ -54,6 +66,27 @@ impl Parser for Rule {
     ) -> Result<ParseResult, Error> {
         if let Some(res) = context.fetch(&self.key(source, at)) {
             return res.clone();
+        }
+
+        let err = self.using_call_depth(|depth| {
+            *depth += 1;
+            if depth >= &mut 64 {
+                let error = CustomError {
+                    message: "Recursion limit reached".to_string(),
+                    severity: Severity::Error,
+                    code: None,
+                    help: None,
+                    labels: None,
+                    url: None,
+                };
+                *depth = 0;
+                context.cache(self.key(source, at), Err(error.clone().into()));
+                return Some(error);
+            }
+            None
+        });
+        if let Some(err) = err {
+            return Err(err.into());
         }
 
         let mut result = self.pattern.parse_at(source, at, context);
@@ -76,6 +109,8 @@ impl Parser for Rule {
             }
         }
 
+        self.using_call_depth(|depth| *depth = 0);
+
         context.cache(self.key(source, at), result.clone());
 
         result
@@ -84,7 +119,7 @@ impl Parser for Rule {
 
 #[cfg(test)]
 mod tests {
-    use crate::{bootstrap::rules::Type, obj, patterns::Repeat, rule};
+    use crate::{alts, bootstrap::rules::Type, obj, patterns::Repeat, rule, seq};
 
     use super::*;
 
@@ -351,6 +386,33 @@ mod tests {
         assert_eq!(
             rule.parse("Person", &mut context).unwrap().ast,
             json!({"Person": {}})
+        )
+    }
+
+    #[test]
+    fn left_recursion() {
+        let mut context = Context::new();
+
+        rule!(struct E: {
+            alts!(
+                seq!({lhs: E} '+' {rhs: E} => obj!(E { lhs, rhs })),
+                "/[0-9]/"
+            )
+        });
+        context.add_rule(E::rule().into());
+        assert_eq!(
+            E::rule().parse("1 + 2 + 3", &mut context).unwrap().ast,
+            json!({
+                "E": {
+                    "lhs": {
+                        "E": {
+                            "lhs": "1",
+                            "rhs": "2"
+                        }
+                    },
+                    "rhs": "3"
+                }
+            })
         )
     }
 }
