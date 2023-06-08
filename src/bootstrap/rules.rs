@@ -8,7 +8,7 @@ use serde_json::json;
 use crate::{
     action::merge,
     alts, cast, expr,
-    expressions::{FieldInitializer, ObjectConstructor},
+    expressions::{Initializer, ObjectConstructor},
     patterns::{self, separated, Named, Sequence},
     rule, rule_ref, seq, Expression, Pattern, Rule,
 };
@@ -170,7 +170,7 @@ fn object() {
 rule!(
     struct NonEmptyObject:
     '{'
-    {initializers: separated(rule_ref!(FieldInitializer), ',')}
+    {initializers: separated(rule_ref!(Initializer), ',')}
     {patterns::Repeat::at_most_once(',')}
     '}'
     => merge(expr!(initializers))
@@ -376,4 +376,15 @@ fn distinct() {
             "Type": 1
         })
     );
+}
+
+rule!(struct Expand: "..." {expr: Expression} => cast!(Expand(expr)));
+#[test]
+fn expand() {
+    let mut context = Context::default();
+    let r = Expand::rule();
+    assert_eq!(
+        r.parse("...a", &mut context).unwrap().ast,
+        json!({"Expand": { "Variable": "a"}})
+    )
 }

@@ -203,31 +203,77 @@ macro_rules! alts {
 	};
 }
 
+/// Macro for convenient creation of object constructors
+/// ```
+/// use dp::{obj, expr, expressions::{ObjectConstructor, Initializer, FieldInitializer}};
+///
+/// assert_eq!(
+///    obj!{},
+///    ObjectConstructor {
+/// 	ty: None,
+///     initializers: vec![]
+///    }
+/// );
+/// assert_eq!(
+///    obj!(Type {}),
+///    ObjectConstructor {
+/// 	ty: Some("Type".to_string()),
+///     initializers: vec![]
+///    }
+/// );
+/// assert_eq!(
+///    obj!(Type { ...a, b, c: 1}),
+///    ObjectConstructor {
+/// 	ty: Some("Type".to_string()),
+///     initializers: vec![
+///         Initializer::Expand(expr!(a)),
+///         FieldInitializer {
+///           name: None,
+///           value: expr!(b)
+///         }.into(),
+///         FieldInitializer {
+///           name: Some("c".to_string()),
+///           value: expr!(1)
+///         }.into(),
+///     ]
+///    }
+/// )
+/// ```
 #[macro_export]
 macro_rules! obj {
     (@field $name:ident) => {
-        crate::expressions::FieldInitializer {
+        $crate::expressions::FieldInitializer {
             name: None,
             value: $crate::expr!($name),
-        }
+        }.into()
     };
     (@field $name:ident : $value:expr ) => {
-        crate::expressions::FieldInitializer {
+        $crate::expressions::FieldInitializer {
             name: Some(stringify!($name).to_string()),
             value: $value.into(),
-        }
+        }.into()
     };
 
-    {$($name:ident $(: $value:expr)?),*} => {
-        crate::expressions::ObjectConstructor {
+    (@expand $name:ident ) => {
+        $crate::expressions::Initializer::Expand($crate::expr!($name))
+    };
+
+    {$(...$expand:ident),* $(,)? $($name:ident $(: $value:expr)?),*} => {
+        $crate::expressions::ObjectConstructor {
             ty: None,
-            initializers: vec![$(obj!(@field $name $(: $value)?)),*],
+            initializers: vec![
+				$(obj!(@expand $expand),)*
+				$(obj!(@field $name $(: $value)?)),*
+			],
         }
     };
-    ($ty:ident { $($name:ident $(: $value:expr)?),* }) => {
-        crate::expressions::ObjectConstructor {
+    ($ty:ident {$(...$expand:ident),* $(,)? $($name:ident $(: $value:expr)?),* }) => {
+        $crate::expressions::ObjectConstructor {
             ty: Some(stringify!($ty).to_string()),
-            initializers: vec![$(obj!(@field $name $(: $value)?)),*],
+            initializers: vec![
+				$(obj!(@expand $expand),)*
+				$(obj!(@field $name $(: $value)?)),*
+			],
         }
     };
 }

@@ -1,16 +1,17 @@
+use derive_more::From;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use crate::{
     alts,
-    bootstrap::rules::{DistinctObject, Identifier, Object},
+    bootstrap::rules::{DistinctObject, Expand, Identifier, Object},
     cast,
     errors::{CustomError, Error, Severity},
     rule, seq, Expression,
 };
 
 /// Initializes a field of an object
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FieldInitializer {
     /// Name of the field. If none, the field name is the same as variable
     pub name: Option<String>,
@@ -34,13 +35,22 @@ rule!(
     }
 );
 
+#[derive(Debug, PartialEq, Eq, Clone, From)]
+pub enum Initializer {
+    /// Initialize field
+    FieldInitializer(FieldInitializer),
+    /// Merge fields of one object into another object
+    Expand(Expression),
+}
+rule!(Initializer: { alts!(FieldInitializer | Expand) });
+
 /// Constructor for an object
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ObjectConstructor {
     /// Type of the object, if any
     pub ty: Option<String>,
     /// Field initializers
-    pub initializers: Vec<FieldInitializer>,
+    pub initializers: Vec<Initializer>,
 }
 rule!(
     ObjectConstructor: {
@@ -59,21 +69,29 @@ impl ObjectConstructor {
     pub fn evaluate(&self, variables: &Map<String, Value>) -> Result<Value, Error> {
         let mut obj = Map::new();
         for initializer in &self.initializers {
-            let value = initializer.value.evaluate(variables)?;
-            let name = initializer
-                .name
-                .clone()
-                .or_else(|| initializer.value.as_variable().map(|v| v.to_string()))
-                .ok_or_else(|| CustomError {
-                    message: "Ommiting field name is only allowed for variable references"
-                        .to_string(),
-                    severity: Severity::Error,
-                    code: None,
-                    help: None,
-                    labels: None,
-                    url: None,
-                })?;
-            obj.insert(name, value);
+            match initializer {
+                Initializer::FieldInitializer(field) => {
+                    let value = field.value.evaluate(variables)?;
+                    let name = field
+                        .name
+                        .clone()
+                        .or_else(|| field.value.as_variable().map(|v| v.to_string()))
+                        .ok_or_else(|| CustomError {
+                            message: "Ommiting field name is only allowed for variable references"
+                                .to_string(),
+                            severity: Severity::Error,
+                            code: None,
+                            help: None,
+                            labels: None,
+                            url: None,
+                        })?;
+                    obj.insert(name, value);
+                }
+                Initializer::Expand(expr) => {
+                    let mut value = expr.evaluate(variables)?;
+                    obj.append(value.as_object_mut().unwrap());
+                }
+            }
         }
         if let Some(ty) = &self.ty {
             let mut typed = Map::new();
@@ -92,11 +110,18 @@ impl Serialize for ObjectConstructor {
     {
         let mut obj = Map::new();
         for i in &self.initializers {
-            let name = i
-                .name
-                .clone()
-                .unwrap_or_else(|| i.value.as_variable().unwrap().to_string());
-            obj.insert(name, json!(i.value));
+            match i {
+                Initializer::FieldInitializer(field) => {
+                    let name = field
+                        .name
+                        .clone()
+                        .unwrap_or_else(|| field.value.as_variable().unwrap().to_string());
+                    obj.insert(name, json!(field.value));
+                }
+                Initializer::Expand(expr) => {
+                    obj.insert("Expand".to_string(), json!(expr));
+                }
+            }
         }
         if let Some(ty) = &self.ty {
             let mut typed = Map::new();
@@ -135,7 +160,13 @@ impl<'de> Deserialize<'de> for ObjectConstructor {
                         (Some(name), value)
                     }
                 })
-                .map(|(name, value)| FieldInitializer { name, value })
+                .map(|(name, value)| {
+                    if let Some("Expand") = name.as_ref().map(|n| n.as_str()) {
+                        Initializer::Expand(value)
+                    } else {
+                        FieldInitializer { name, value }.into()
+                    }
+                })
                 .collect(),
         })
     }
@@ -183,6 +214,14 @@ mod test {
         assert_eq!(
             r.parse("Typed { a: 'c' }", &mut context).unwrap().ast,
             json!({"Typed": { "a": 'c' }})
+        );
+        assert_eq!(
+            r.parse("{ ...a }", &mut context).unwrap().ast,
+            json!({ "Expand": { "Variable": "a" } })
+        );
+        assert_eq!(
+            r.parse("Typed { ...a }", &mut context).unwrap().ast,
+            json!({"Typed": { "Expand": { "Variable": "a" }}})
         );
     }
 
