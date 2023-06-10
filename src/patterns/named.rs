@@ -51,6 +51,7 @@ impl Parser for Named {
         context: &mut Context,
     ) -> Result<ParseResult, Error> {
         let mut result = self.pattern.parse_at(source, at, context)?;
+        result.syntax = result.syntax.with_name(&self.name);
         result.ast = json!({&self.name: result.ast});
         Ok(result)
     }
@@ -67,7 +68,6 @@ impl<N: Into<String>, P: Into<Pattern>> From<(N, P)> for Named {
 
 #[test]
 fn test_named() {
-    use crate::parsers::ParseResult;
     use crate::Context;
     use pretty_assertions::assert_eq;
 
@@ -77,11 +77,8 @@ fn test_named() {
         pattern: Box::new("/[A-z][a-z]*/".into()),
     };
     assert_eq!(
-        pattern.parse("John", &mut context).unwrap(),
-        ParseResult {
-            delta: 4,
-            ast: json!({"name": "John"}),
-        }
+        pattern.parse("John", &mut context).unwrap().ast,
+        json!({"name": "John"}),
     );
 }
 

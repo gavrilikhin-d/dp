@@ -131,11 +131,8 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("Hello World", &mut context).unwrap(),
-            ParseResult {
-                delta: 5,
-                ast: json!("Hello")
-            }
+            Test::rule().parse("Hello World", &mut context).unwrap().ast,
+            json!("Hello")
         );
     }
 
@@ -145,11 +142,8 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("Hello World", &mut context).unwrap(),
-            ParseResult {
-                delta: 5,
-                ast: json!({"Test": {"text": "Hello"}})
-            }
+            Test::rule().parse("Hello World", &mut context).unwrap().ast,
+            json!({"Test": {"text": "Hello"}})
         );
     }
 
@@ -159,11 +153,8 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("Hello World", &mut context).unwrap(),
-            ParseResult {
-                delta: 5,
-                ast: json!("Hello")
-            }
+            Test::rule().parse("Hello World", &mut context).unwrap().ast,
+            json!("Hello")
         );
     }
 
@@ -197,16 +188,13 @@ mod tests {
         assert_eq!(rule.name, "Rule");
 
         assert_eq!(
-            rule.parse("X: a b", &mut context).unwrap(),
-            ParseResult {
-                delta: 6,
-                ast: json!({
-                    "Rule": {
-                        "name": "X",
-                        "pattern": ["a", "b"]
-                    }
-                })
-            }
+            rule.parse("X: a b", &mut context).unwrap().ast,
+            json!({
+                "Rule": {
+                    "name": "X",
+                    "pattern": ["a", "b"]
+                }
+            })
         );
 
         let rule = context.find_rule("X").unwrap();
@@ -221,16 +209,13 @@ mod tests {
         assert_eq!(rule.name, "Rule");
 
         assert_eq!(
-            rule.parse("X: /ab?c/", &mut context).unwrap(),
-            ParseResult {
-                delta: 9,
-                ast: json!({
-                    "Rule": {
-                        "name": "X",
-                        "pattern": "/ab?c/"
-                    }
-                })
-            }
+            rule.parse("X: /ab?c/", &mut context).unwrap().ast,
+            json!({
+                "Rule": {
+                    "name": "X",
+                    "pattern": "/ab?c/"
+                }
+            })
         );
 
         let rule = context.find_rule("X").unwrap();

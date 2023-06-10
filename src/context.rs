@@ -191,10 +191,8 @@ mod test {
     use serde_json::json;
 
     use crate::{
-        bootstrap::rules::Root,
-        errors::Expected,
-        parsers::{ParseResult, Parser},
-        rule, source_id, Context, Key, Rule, UnderlyingRule,
+        bootstrap::rules::Root, errors::Expected, parsers::Parser, rule, source_id, Context, Key,
+        Rule, UnderlyingRule,
     };
 
     #[test]
@@ -366,13 +364,7 @@ mod test {
         let mut ctx = Context::default();
         let rule_name = ctx.find_rule("RuleName").unwrap();
         assert_eq!(rule_name.name, "RuleName");
-        assert_eq!(
-            rule_name.parse("Foo", &mut ctx).unwrap(),
-            ParseResult {
-                delta: 3,
-                ast: json!("Foo")
-            }
-        );
+        assert_eq!(rule_name.parse("Foo", &mut ctx).unwrap().ast, json!("Foo"));
         assert_eq!(
             rule_name.parse("foo", &mut ctx).unwrap_err(),
             Expected {
@@ -417,11 +409,8 @@ mod test {
         let r = context.find_rule("RuleReference").unwrap();
         assert_eq!(r.name, "RuleReference");
         assert_eq!(
-            r.parse("Foo", &mut context).unwrap(),
-            ParseResult {
-                delta: 3,
-                ast: json!({"RuleReference": "Foo"})
-            }
+            r.parse("Foo", &mut context).unwrap().ast,
+            json!({"RuleReference": "Foo"})
         );
     }
     #[test]
@@ -431,38 +420,20 @@ mod test {
         assert_eq!(r.name, "AtomicPattern");
 
         assert_eq!(
-            r.parse("Foo", &mut context).unwrap(),
-            ParseResult {
-                delta: 3,
-                ast: json!({
-                    "RuleReference": "Foo"
-                })
-            }
+            r.parse("Foo", &mut context).unwrap().ast,
+            json!({
+                "RuleReference": "Foo"
+            })
         );
 
-        assert_eq!(
-            r.parse("foo", &mut context).unwrap(),
-            ParseResult {
-                delta: 3,
-                ast: json!("foo")
-            }
-        );
+        assert_eq!(r.parse("foo", &mut context).unwrap().ast, json!("foo"));
 
         assert_eq!(
-            r.parse("/(xyz?)/", &mut context).unwrap(),
-            ParseResult {
-                delta: 8,
-                ast: json!("/(xyz?)/")
-            }
+            r.parse("/(xyz?)/", &mut context).unwrap().ast,
+            json!("/(xyz?)/")
         );
 
-        assert_eq!(
-            r.parse("( bar )", &mut context).unwrap(),
-            ParseResult {
-                delta: 7,
-                ast: json!("bar")
-            }
-        );
+        assert_eq!(r.parse("( bar )", &mut context).unwrap().ast, json!("bar"));
     }
 
     #[test]
@@ -472,20 +443,17 @@ mod test {
         assert_eq!(r.name, "Sequence");
 
         assert_eq!(
-            r.parse("Foo bar?", &mut context).unwrap(),
-            ParseResult {
-                delta: 8,
-                ast: json!([
-                {
-                    "RuleReference": "Foo"
-                },
-                {
-                    "Repeat": {
-                        "pattern": "bar",
-                        "at_most": 1
-                    }
-                }])
-            }
+            r.parse("Foo bar?", &mut context).unwrap().ast,
+            json!([
+            {
+                "RuleReference": "Foo"
+            },
+            {
+                "Repeat": {
+                    "pattern": "bar",
+                    "at_most": 1
+                }
+            }])
         );
         assert_eq!(
             r.parse("'(' <l: /[a-z]/> ')' => l", &mut context)
@@ -546,43 +514,34 @@ mod test {
         assert_eq!(r.name, "Pattern");
 
         assert_eq!(
-            r.parse("Foo?", &mut context).unwrap(),
-            ParseResult {
-                delta: 4,
-                ast: json!({
-                    "Repeat": {
-                        "pattern": {
-                            "RuleReference": "Foo"
-                        },
-                        "at_most": 1
-                    }
-                })
-            }
+            r.parse("Foo?", &mut context).unwrap().ast,
+            json!({
+                "Repeat": {
+                    "pattern": {
+                        "RuleReference": "Foo"
+                    },
+                    "at_most": 1
+                }
+            })
         );
 
         assert_eq!(
-            r.parse("foo*", &mut context).unwrap(),
-            ParseResult {
-                delta: 4,
-                ast: json!({
-                    "Repeat": {
-                        "pattern": "foo"
-                    }
-                })
-            }
+            r.parse("foo*", &mut context).unwrap().ast,
+            json!({
+                "Repeat": {
+                    "pattern": "foo"
+                }
+            })
         );
 
         assert_eq!(
-            r.parse("(bar)+", &mut context).unwrap(),
-            ParseResult {
-                delta: 6,
-                ast: json!({
-                    "Repeat": {
-                        "pattern": "bar",
-                        "at_least": 1
-                    }
-                })
-            }
+            r.parse("(bar)+", &mut context).unwrap().ast,
+            json!({
+                "Repeat": {
+                    "pattern": "bar",
+                    "at_least": 1
+                }
+            })
         );
     }
 
@@ -593,16 +552,13 @@ mod test {
         assert_eq!(r.name, "Rule");
 
         assert_eq!(
-            r.parse("Lol: kek", &mut context).unwrap(),
-            ParseResult {
-                delta: 8,
-                ast: json!({
-                    "Rule": {
-                        "name": "Lol",
-                        "pattern": "kek"
-                    }
-                })
-            }
+            r.parse("Lol: kek", &mut context).unwrap().ast,
+            json!({
+                "Rule": {
+                    "name": "Lol",
+                    "pattern": "kek"
+                }
+            })
         );
         assert_eq!(
             context.find_rule("Lol"),

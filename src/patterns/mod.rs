@@ -253,8 +253,10 @@ impl Parser for Pattern {
                 }
 
                 let m = m.unwrap();
+                let start = at + trivia_size;
+                let end = start + m.len();
                 Ok(ParseResult {
-                    delta: trivia_size + m.len(),
+                    syntax: (start..end).into(),
                     ast: m.into(),
                 })
             }
@@ -289,22 +291,23 @@ mod test {
     use pretty_assertions::assert_eq;
 
     use crate::{
+        bootstrap::rules::Text,
         errors::Expected,
         parsers::{ParseResult, Parser},
         patterns::Named,
-        Context, Pattern,
+        syntax, Context, Pattern,
     };
 
     #[test]
     fn text() {
         let mut context = Context::default();
-        let pattern: Pattern = "()".into();
-        assert_eq!(pattern, Pattern::Text("()".into()));
+        let pattern: Pattern = "text".into();
+        assert_eq!(pattern, Pattern::Text("text".into()));
         assert_eq!(
-            pattern.parse("()", &mut context).unwrap(),
+            pattern.parse("text", &mut context).unwrap(),
             ParseResult {
-                delta: 2,
-                ast: json!("()")
+                syntax: (0..4).into(),
+                ast: json!("text")
             }
         );
     }
@@ -317,7 +320,7 @@ mod test {
         assert_eq!(
             pattern.parse("hello world", &mut context).unwrap(),
             ParseResult {
-                delta: 5,
+                syntax: (0..5).into(),
                 ast: json!("hello")
             }
         );
@@ -326,25 +329,25 @@ mod test {
     #[test]
     fn alt() {
         let mut context = Context::default();
-        let pattern = Pattern::Alternatives(vec!["a".into(), "b".into()]);
+        let pattern = Pattern::Alternatives(vec!["a".into(), "bc".into()]);
         assert_eq!(
             pattern.parse("a", &mut context).unwrap(),
             ParseResult {
-                delta: 1,
+                syntax: (0..1).into(),
                 ast: json!("a")
             }
         );
         assert_eq!(
-            pattern.parse("b", &mut context).unwrap(),
+            pattern.parse("bc", &mut context).unwrap(),
             ParseResult {
-                delta: 1,
-                ast: json!("b")
+                syntax: (0..2).into(),
+                ast: json!("bc")
             }
         );
         assert_eq!(
             pattern.parse("c", &mut context).unwrap_err(),
             Expected {
-                expected: "b".to_string(),
+                expected: "bc".to_string(),
                 at: 0
             }
             .into()
@@ -358,7 +361,7 @@ mod test {
         assert_eq!(
             pattern.parse("ab", &mut context).unwrap(),
             ParseResult {
-                delta: 2,
+                syntax: vec![(0..1).into(), (1..2).into()].into(),
                 ast: json!({})
             }
         );
@@ -391,11 +394,11 @@ mod test {
     #[test]
     fn rule_ref() {
         let mut context = Context::default();
-        let pattern = crate::rule_ref!("Text");
+        let pattern = crate::rule_ref!(Text);
         assert_eq!(
             pattern.parse("abc", &mut context).unwrap(),
             ParseResult {
-                delta: 3,
+                syntax: (0..3).into(),
                 ast: json!("abc")
             }
         )
@@ -403,7 +406,6 @@ mod test {
 
     #[test]
     fn named() {
-        use crate::parsers::ParseResult;
         use crate::Context;
 
         let mut context = Context::default();
@@ -415,8 +417,11 @@ mod test {
         assert_eq!(
             pattern.parse("John", &mut context).unwrap(),
             ParseResult {
-                delta: 4,
-                ast: json!({"name": "John"}),
+                syntax: syntax::Node::Named {
+                    name: "name".to_string(),
+                    node: Box::new((0..4).into())
+                },
+                ast: json!({"name": "John"})
             }
         );
     }

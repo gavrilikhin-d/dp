@@ -18,12 +18,23 @@ X: b
 Y: X // Same as Y: b
 ```
 
+## Root rule
+Parser starts at `Root` rule.
+If you want to extend parsers syntax, you must override it
+```
+>>> EmptyTuple: '(' ')' => "EmptyTuple"
+>>> Root: Rule | EmptyTuple
+// >>> Root: Root.clone() | EmptyTuple // TODO: copy rule
+>>> ()
+"EmptyTuple"
+
+```
+
 # Todo
-* [ ] Remove parse tree
+* [x] Remove parse tree
 * [ ] Array constructors
 * [x] Remove parse tree
 * [ ] Add a way to obtain syntax information from variable name
-* [ ] Store source code in context
 * [ ] Remove `on_parse` function from rule
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
@@ -38,3 +49,5 @@ Y: X // Same as Y: b
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
 * [ ] Comments
+* [ ] Debug mode
+* [ ] Use `syntax::Node` in `ParseResult`

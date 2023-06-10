@@ -4,6 +4,8 @@
 pub mod action;
 pub use action::Action;
 
+pub mod syntax;
+
 pub mod patterns;
 pub use patterns::Pattern;
 

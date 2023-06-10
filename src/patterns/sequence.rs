@@ -69,14 +69,15 @@ impl Parser for Sequence {
     fn parse_at<'s>(
         &self,
         source: &'s str,
-        at: usize,
+        mut at: usize,
         context: &mut Context,
     ) -> Result<ParseResult, Error> {
-        let mut delta = 0;
+        let mut syntax = vec![];
         let mut ast = json!({});
         for pattern in &self.patterns {
-            let mut result = pattern.parse_at(source, at + delta, context)?;
-            delta += result.delta;
+            let mut result = pattern.parse_at(source, at, context)?;
+            at = result.syntax.range().map_or(at, |r| r.end);
+            syntax.push(result.syntax);
 
             if let Pattern::Named(_) = pattern {
                 ast.as_object_mut()
@@ -91,8 +92,10 @@ impl Parser for Sequence {
         if let Some(action) = &self.action {
             let result = action.execute(&ast.as_object().unwrap_or(&serde_json::Map::new()));
             if let Err(error) = result {
-                println!("{:?}", miette::Report::new(error));
-                delta = 0;
+                println!(
+                    "{:?}",
+                    miette::Report::new(error).with_source_code(source.to_string())
+                );
                 ast = json!(null);
             } else {
                 ast = result.unwrap();
@@ -100,7 +103,7 @@ impl Parser for Sequence {
         }
 
         Ok(ParseResult {
-            delta,
+            syntax: syntax.into(),
             ast: ast.into(),
         })
     }
