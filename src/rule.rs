@@ -13,6 +13,9 @@ use crate::{
     rule, source_id, Context, Key, Pattern,
 };
 
+/// Limit of recursion for rules
+const RECURSION_LIMIT: usize = 32;
+
 /// Trait for types that may be converted to rule
 pub trait UnderlyingRule {
     /// Get name of the rule
@@ -64,32 +67,33 @@ impl Parser for Rule {
         at: usize,
         context: &mut Context,
     ) -> Result<ParseResult, Error> {
+        let err = self.using_call_depth(|depth| {
+            if *depth <= RECURSION_LIMIT {
+                return None;
+            }
+
+            Some(CustomError {
+                message: "Recursion limit reached".to_string(),
+                severity: Severity::Error,
+                code: None,
+                help: None,
+                labels: None,
+                url: None,
+            })
+        });
+        if let Some(err) = err {
+            let result = Err(err.into());
+            return result;
+        }
+
         if let Some(res) = context.fetch(&self.key(source, at)) {
             return res.clone();
         }
 
-        let err = self.using_call_depth(|depth| {
-            *depth += 1;
-            if depth >= &mut 64 {
-                let error = CustomError {
-                    message: "Recursion limit reached".to_string(),
-                    severity: Severity::Error,
-                    code: None,
-                    help: None,
-                    labels: None,
-                    url: None,
-                };
-                *depth = 0;
-                context.cache(self.key(source, at), Err(error.clone().into()));
-                return Some(error);
-            }
-            None
-        });
-        if let Some(err) = err {
-            return Err(err.into());
-        }
-
+        self.using_call_depth(|depth| *depth += 1);
         let mut result = self.pattern.parse_at(source, at, context);
+        self.using_call_depth(|depth| *depth -= 1);
+
         if let Ok(ref mut res) = &mut result {
             // single unnamed -> transparent
             // has action -> transparent
@@ -108,8 +112,6 @@ impl Parser for Rule {
                 res.ast = on_parsed(res.ast.take(), context);
             }
         }
-
-        self.using_call_depth(|depth| *depth = 0);
 
         context.cache(self.key(source, at), result.clone());
 

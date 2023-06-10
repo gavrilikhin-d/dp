@@ -30,11 +30,26 @@ If you want to extend parsers syntax, you must override it
 
 ```
 
+# Errors
+Create error rules for better errors description. By convention, they should start with `Invalid`.
+`@` means at current location,
+`@lparen` means at location of `lparen`
+```
+Tuple: '(' ')' | InvalidTuple
+InvalidTuple: <lparen: '('> =>
+	throw ExpectedMatching {
+		expected: ')',
+		at: @,
+		to_match: '(',
+		unmatched_at: @lparen,
+	}
+```
+
 # Todo
 * [x] Remove parse tree
 * [ ] Array constructors
 * [x] Remove parse tree
-* [ ] Add a way to obtain syntax information from variable name
+* [x] Obtain range of syntax by `@variable`
 * [ ] Remove `on_parse` function from rule
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
@@ -50,4 +65,4 @@ If you want to extend parsers syntax, you must override it
       * [ ] Implement deserialize
 * [ ] Comments
 * [ ] Debug mode
-* [ ] Use `syntax::Node` in `ParseResult`
+* [x] Use `syntax::Node` in `ParseResult`

@@ -1,3 +1,6 @@
+use std::ops::Range;
+
+use derive_more::From;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -7,7 +10,7 @@ use crate::{
     errors::Error,
     obj,
     parsers::{ParseResult, Parser},
-    rule, rule_ref, seq, Context, Pattern,
+    rule, rule_ref, seq, syntax, Context, Pattern,
 };
 
 #[cfg(test)]
@@ -90,7 +93,16 @@ impl Parser for Sequence {
         }
 
         if let Some(action) = &self.action {
-            let result = action.execute(&ast.as_object().unwrap_or(&serde_json::Map::new()));
+            let mut variables = ast.as_object().cloned().unwrap_or(serde_json::Map::new());
+            variables.insert("@".to_string(), at.into());
+            for s in syntax.iter() {
+                if let syntax::Node::Named { name, node } = &s {
+                    if let Some(r) = node.range() {
+                        variables.insert(format!("@{}", name), json!(Location::from(r)));
+                    }
+                }
+            }
+            let result = action.execute(&variables);
             if let Err(error) = result {
                 println!(
                     "{:?}",
@@ -106,6 +118,29 @@ impl Parser for Sequence {
             syntax: syntax.into(),
             ast: ast.into(),
         })
+    }
+}
+
+#[derive(Serialize, Deserialize, From)]
+enum Location {
+    Range {
+        start: usize,
+        end: usize,
+    },
+    #[serde(untagged)]
+    At(usize),
+}
+
+impl From<Range<usize>> for Location {
+    fn from(range: Range<usize>) -> Self {
+        if range.start == range.end {
+            Self::At(range.start)
+        } else {
+            Self::Range {
+                start: range.start,
+                end: range.end,
+            }
+        }
     }
 }
 

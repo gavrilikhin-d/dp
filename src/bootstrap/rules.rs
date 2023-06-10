@@ -104,7 +104,7 @@ fn typename() {
     assert_eq!(r.parse("Type", &mut context).unwrap().ast, json!("Type"));
 }
 
-rule!(struct Variable: {name: Identifier} => cast!(Variable(name)));
+rule!(struct Variable: {name: "/[@a-z_][a-zA-Z_0-9]*/"} => cast!(Variable(name)));
 #[test]
 fn variable() {
     let mut context = Context::default();
@@ -112,6 +112,14 @@ fn variable() {
     assert_eq!(
         r.parse("var", &mut context).unwrap().ast,
         json!({"Variable": "var"})
+    );
+    assert_eq!(
+        r.parse("@", &mut context).unwrap().ast,
+        json!({"Variable": "@"})
+    );
+    assert_eq!(
+        r.parse("@var", &mut context).unwrap().ast,
+        json!({"Variable": "@var"})
     );
 }
 
