@@ -19,11 +19,11 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    arr,
     bootstrap::rules::Alternatives,
     errors::{Error, Expected},
-    expr,
     parsers::{ParseResult, Parser},
-    rule, seq, Context, Expression,
+    rule, seq, Context,
 };
 
 /// Possible patterns
@@ -75,11 +75,7 @@ pub fn separated(pattern: impl Into<Pattern>, separator: impl Into<Pattern>) -> 
                 )
             )
         }
-        =>
-        Expression::Flatten(vec![
-            expr!(head),
-            expr!(tail),
-        ])
+        => arr! [head, ...tail]
     )
     .into()
 }

@@ -14,7 +14,9 @@ use crate::{
         Text, Throw, Type, Typename, Value, Variable,
     },
     errors::Error,
-    expressions::{Cast, FieldInitializer, Initializer, ObjectConstructor},
+    expressions::{
+        ArrayConstructor, ArrayElement, Cast, FieldInitializer, Initializer, ObjectConstructor,
+    },
     parsers::ParseResult,
     patterns::{Named, Repeat, Sequence},
     Expression, Pattern, Rule, UnderlyingRule,
@@ -167,6 +169,8 @@ impl Default for Context {
             Distinct::rule().into(),
             Expand::rule().into(),
             Initializer::rule().into(),
+            ArrayElement::rule().into(),
+            ArrayConstructor::rule().into(),
         ];
         rules.into_iter().for_each(|r| {
             ctx.add_rule(r);

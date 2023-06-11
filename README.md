@@ -49,7 +49,7 @@ InvalidTuple: <lparen: '('> =>
 To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 
 # Todo
-* [ ] Array constructors
+* [X] Array constructors
 * [ ] Remove `on_parse` function from rule
 * [ ] Move logic to syntax
 * [ ] Export/Import rules

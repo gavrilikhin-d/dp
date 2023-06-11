@@ -10,15 +10,15 @@ pub use cast::*;
 mod object_constructor;
 pub use object_constructor::*;
 
+mod array_constructor;
+pub use array_constructor::*;
+
 /// Expression that can be evaluated to a value
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, From)]
 pub enum Expression {
     /// A variable reference
     #[from(ignore)]
     Variable(String),
-    /// Flatten an array of expressions
-    #[from(ignore)]
-    Flatten(Vec<Expression>),
     /// Merge an array of objects into one object
     #[from(ignore)]
     Merge(Box<Expression>),
@@ -27,6 +27,9 @@ pub enum Expression {
     /// An object constructor
     #[serde(untagged)]
     ObjectConstructor(ObjectConstructor),
+    /// An array constructor
+    #[serde(untagged)]
+    ArrayConstructor(ArrayConstructor),
     /// A JSON value
     #[serde(untagged)]
     Value(Value),
@@ -64,23 +67,6 @@ impl Expression {
     pub fn evaluate(&self, variables: &Map<String, Value>) -> Result<Value, Error> {
         match self {
             Expression::Value(value) => Ok(value.clone()),
-            Expression::Flatten(values) => {
-                let values = values
-                    .iter()
-                    .map(|v| v.evaluate(variables))
-                    .collect::<Result<Vec<_>, _>>()?;
-                let mut result = Vec::new();
-                for value in values {
-                    if let Value::Array(arr) = value {
-                        for value in arr {
-                            result.push(value);
-                        }
-                    } else {
-                        result.push(value);
-                    }
-                }
-                Ok(result.into())
-            }
             Expression::Merge(expr) => {
                 let mut v = expr.evaluate(variables)?;
                 let objs = v.as_array_mut().unwrap();
@@ -102,6 +88,7 @@ impl Expression {
                 Ok(json!({ ty.as_str().unwrap(): value }))
             }
             Expression::ObjectConstructor(oc) => oc.evaluate(variables),
+            Expression::ArrayConstructor(ac) => ac.evaluate(variables),
         }
     }
 

@@ -8,7 +8,7 @@ use serde_json::json;
 use crate::{
     action::merge,
     alts, cast, expr,
-    expressions::{Initializer, ObjectConstructor},
+    expressions::{ArrayConstructor, Initializer, ObjectConstructor},
     patterns::{self, separated, Named, Sequence},
     rule, rule_ref, seq, Expression, Pattern, Rule,
 };
@@ -142,7 +142,8 @@ rule!(
             Char |
             String |
             Integer |
-            ObjectConstructor
+            ObjectConstructor |
+            ArrayConstructor
         )
     }
 );
@@ -154,6 +155,7 @@ fn value() {
     assert_eq!(r.parse("\"str\"", &mut context).unwrap().ast, json!("str"));
     assert_eq!(r.parse("123", &mut context).unwrap().ast, json!(123));
     assert_eq!(r.parse("{}", &mut context).unwrap().ast, json!({}));
+    assert_eq!(r.parse("[]", &mut context).unwrap().ast, json!([]));
 }
 
 rule!(

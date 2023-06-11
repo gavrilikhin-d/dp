@@ -288,3 +288,57 @@ macro_rules! named {
         $crate::patterns::Named::from((stringify!($name), $expr))
     };
 }
+
+/// Macro to simplify creation of [`ArrayConstructor`]
+/// ```
+/// use dp::{arr, expr, expressions::{ArrayConstructor, ArrayElement}};
+/// assert_eq!(
+///    arr![],
+///    ArrayConstructor(vec![])
+/// );
+/// assert_eq!(
+///   arr![1, ...b, c],
+///   ArrayConstructor(vec![
+/// 	expr!(1).into(),
+/// 	ArrayElement::Expand(expr!(b)),
+/// 	expr!(c).into()
+///   ])
+/// );
+/// ```
+#[macro_export]
+macro_rules! arr {
+	(@elem ... $name:ident)  => {
+		$crate::expressions::ArrayElement::Expand($crate::expr!($name))
+	};
+
+	(@elem $($tokens:tt)+)  => {
+		$crate::expressions::ArrayElement::from($crate::expr!($($tokens)+))
+	};
+
+	[@ [$($processed:tt)*] [$($current:tt)+]; , $($tail:tt)*] => {
+		$crate::arr![@ [$($processed)*  $crate::arr!(@elem $($current)+),] []; $($tail)*]
+	};
+
+	[@ [$($processed:tt)*] [$($current:tt)*]; $token:tt $($tail:tt)*] => {
+		$crate::arr![@ [$($processed)*] [$($current)* $token]; $($tail)*]
+	};
+
+	[@ [$($processed:tt)*] [$($current:tt)+]; ] => {
+		$crate::arr![@ [$($processed)*  $crate::arr!(@elem $($current)+),] [];]
+	};
+
+	[@ [$($processed:tt)*] []; ] => {
+		$crate::expressions::ArrayConstructor(
+			vec![
+				$($processed)*
+			]
+		)
+	};
+
+	[] => {
+		$crate::expressions::ArrayConstructor(vec![])
+	};
+	[$($tokens:tt)+] => {
+		$crate::arr![@ [] []; $($tokens)+]
+	};
+}
