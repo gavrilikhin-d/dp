@@ -4,7 +4,7 @@ use std::{
 };
 
 use colored::Colorize;
-use log::{debug, trace};
+use log::{debug, log_enabled, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -99,7 +99,15 @@ impl Parser for Rule {
                 target: target.as_str(),
                 "Cache hit"
             );
-            log_result(target.as_str(), &res, "(cache)");
+            let msg = if res.is_err() {
+                "ERR".red().bold()
+            } else {
+                "OK".green().bold()
+            };
+            debug!(
+                target: target.as_str(),
+                "{msg} (cache)"
+            );
             return res.clone();
         }
 
@@ -107,7 +115,7 @@ impl Parser for Rule {
 
         self.using_call_depth(|depth| *depth += 1);
         let mut result = self.pattern.parse_at(source, at, context);
-        log_result(target.as_str(), &result, "");
+        log_result(target.as_str(), at, source, &result);
         self.using_call_depth(|depth| *depth -= 1);
 
         if let Ok(ref mut res) = &mut result {
@@ -139,16 +147,35 @@ impl Parser for Rule {
     }
 }
 
-fn log_result<T, E>(target: &str, result: &Result<T, E>, additional: &str) {
-    let msg = if result.is_ok() {
-        "OK".green().bold()
-    } else {
-        "ERR".red().bold()
-    };
-    debug!(
-        target: target,
-        "{msg} {additional}"
-    );
+fn log_result(target: &str, at: usize, source: &str, result: &Result<ParseResult, Error>) {
+    if log_enabled!(log::Level::Debug) {
+        if result.is_err() {
+            debug!(
+                target: target,
+                "{}", "ERR".red().bold()
+            );
+            return;
+        }
+
+        let range = result.as_ref().unwrap().syntax.range().unwrap_or(at..at);
+        let start = range.start;
+        let end = range.end;
+
+        let line_start = source[..at].rfind('\n').map(|i| i + 1).unwrap_or(0);
+        let line_end = source[at..]
+            .find('\n')
+            .map(|i| at + i)
+            .unwrap_or(source.len());
+
+        debug!(
+            target: target,
+            "{}{}{}{}",
+            &source[line_start..at],
+            source[at..start].on_bright_black(),
+            source[start..end].on_bright_green(),
+            &source[end..line_end]
+        );
+    }
 }
 
 #[cfg(test)]

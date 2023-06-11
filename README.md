@@ -62,3 +62,4 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
 * [ ] Comments
+* [ ] Simplify rules
