@@ -3,6 +3,8 @@ use std::{
     sync::{LazyLock, Mutex},
 };
 
+use colored::Colorize;
+use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -67,6 +69,8 @@ impl Parser for Rule {
         at: usize,
         context: &mut Context,
     ) -> Result<ParseResult, Error> {
+        let target = format!("{}@{at}", self.name);
+
         let err = self.using_call_depth(|depth| {
             if *depth <= RECURSION_LIMIT {
                 return None;
@@ -82,16 +86,28 @@ impl Parser for Rule {
             })
         });
         if let Some(err) = err {
+            debug!(
+                target: target.as_str(),
+                "Recursion limit reached"
+            );
             let result = Err(err.into());
             return result;
         }
 
         if let Some(res) = context.fetch(&self.key(source, at)) {
+            trace!(
+                target: target.as_str(),
+                "Cache hit"
+            );
+            log_result(target.as_str(), &res);
             return res.clone();
         }
 
+        trace!(target: target.as_ref(), "Parsing");
+
         self.using_call_depth(|depth| *depth += 1);
         let mut result = self.pattern.parse_at(source, at, context);
+        log_result(target.as_str(), &result);
         self.using_call_depth(|depth| *depth -= 1);
 
         if let Ok(ref mut res) = &mut result {
@@ -109,6 +125,10 @@ impl Parser for Rule {
             }
 
             if let Some(on_parsed) = context.on_parsed(&self.name) {
+                trace!(
+                    target: target.as_str(),
+                    "Calling {}", "on_parsed".bold()
+                );
                 res.ast = on_parsed(res.ast.take(), context);
             }
         }
@@ -117,6 +137,18 @@ impl Parser for Rule {
 
         result
     }
+}
+
+fn log_result<T, E>(target: &str, result: &Result<T, E>) {
+    let msg = if result.is_ok() {
+        "OK".green().bold()
+    } else {
+        "ERR".red().bold()
+    };
+    debug!(
+        target: target,
+        "{msg}",
+    );
 }
 
 #[cfg(test)]

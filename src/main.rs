@@ -3,6 +3,8 @@ use std::io::Write;
 use dp::{parsers::Parser, Context};
 
 fn main() {
+    pretty_env_logger::init();
+
     miette::set_panic_hook();
 
     let mut context = Context::default();

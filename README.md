@@ -45,6 +45,9 @@ InvalidTuple: <lparen: '('> =>
 	}
 ```
 
+# Debugging
+To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
+
 # Todo
 * [x] Remove parse tree
 * [ ] Array constructors
@@ -64,5 +67,5 @@ InvalidTuple: <lparen: '('> =>
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
 * [ ] Comments
-* [ ] Debug mode
+* [x] Debug mode
 * [x] Use `syntax::Node` in `ParseResult`
