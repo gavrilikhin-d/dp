@@ -49,16 +49,11 @@ InvalidTuple: <lparen: '('> =>
 To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 
 # Todo
-* [x] Remove parse tree
 * [ ] Array constructors
-* [x] Remove parse tree
-* [x] Obtain range of syntax by `@variable`
 * [ ] Remove `on_parse` function from rule
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
 * [ ] Add syntax highlighting
-* [x] Support left-recursion
-* [x] Packrat parsing (only caching rules)
 * [ ] Add documentation
 * [ ] Simplify separated patterns
 * [ ] Add `#[derive(Rule)]`
@@ -67,5 +62,3 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
 * [ ] Comments
-* [x] Debug mode
-* [x] Use `syntax::Node` in `ParseResult`

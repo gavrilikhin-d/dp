@@ -4,7 +4,7 @@ use std::{
 };
 
 use colored::Colorize;
-use log::{debug, info, trace};
+use log::{debug, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -99,7 +99,7 @@ impl Parser for Rule {
                 target: target.as_str(),
                 "Cache hit"
             );
-            log_result(target.as_str(), &res);
+            log_result(target.as_str(), &res, "(cache)");
             return res.clone();
         }
 
@@ -107,7 +107,7 @@ impl Parser for Rule {
 
         self.using_call_depth(|depth| *depth += 1);
         let mut result = self.pattern.parse_at(source, at, context);
-        log_result(target.as_str(), &result);
+        log_result(target.as_str(), &result, "");
         self.using_call_depth(|depth| *depth -= 1);
 
         if let Ok(ref mut res) = &mut result {
@@ -139,7 +139,7 @@ impl Parser for Rule {
     }
 }
 
-fn log_result<T, E>(target: &str, result: &Result<T, E>) {
+fn log_result<T, E>(target: &str, result: &Result<T, E>, additional: &str) {
     let msg = if result.is_ok() {
         "OK".green().bold()
     } else {
@@ -147,7 +147,7 @@ fn log_result<T, E>(target: &str, result: &Result<T, E>) {
     };
     debug!(
         target: target,
-        "{msg}",
+        "{msg} {additional}"
     );
 }
 

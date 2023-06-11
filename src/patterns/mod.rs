@@ -1,4 +1,6 @@
 mod named;
+use colored::Colorize;
+use log::{debug, log_enabled, trace};
 pub use named::*;
 
 mod repeat;
@@ -237,6 +239,8 @@ impl Parser for Pattern {
                 Pattern::Regex(regex::escape(text)).parse_at(source, at, context)
             }
             Pattern::Regex(r) => {
+                let target = format!("/{r}/@{at}");
+
                 // Find first not whitespace character
                 let trivia_size = source[at..]
                     .find(|c: char| !c.is_ascii_whitespace())
@@ -245,6 +249,7 @@ impl Parser for Pattern {
                 let re = Regex::new(format!("^{r}").as_str()).expect("Invalid regex");
                 let m = re.find(&source[at + trivia_size..]).map(|m| m.as_str());
                 if m.is_none() {
+                    trace!(target: target.as_str(), "{}", "ERR".red().bold());
                     return Err(Expected {
                         expected: r.clone(),
                         at: at.into(),
@@ -255,6 +260,22 @@ impl Parser for Pattern {
                 let m = m.unwrap();
                 let start = at + trivia_size;
                 let end = start + m.len();
+                if log_enabled!(log::Level::Debug) {
+                    let line_start = source[..at].rfind('\n').map(|i| i + 1).unwrap_or(0);
+                    let line_end = source[at..]
+                        .find('\n')
+                        .map(|i| at + i)
+                        .unwrap_or(source.len());
+
+                    debug!(
+                        target: target.as_str(),
+                        "{}{}{}{}",
+                        &source[line_start..at],
+                        source[at..start].on_bright_black(),
+                        source[start..end].on_bright_green(),
+                        &source[end..line_end]
+                    );
+                }
                 Ok(ParseResult {
                     syntax: (start..end).into(),
                     ast: m.into(),
