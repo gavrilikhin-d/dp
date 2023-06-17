@@ -25,3 +25,9 @@ pub mod expressions;
 pub use expressions::Expression;
 
 pub mod macros;
+
+#[cfg(test)]
+#[ctor::ctor]
+fn init() {
+    pretty_env_logger::init();
+}
