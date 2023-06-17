@@ -1,4 +1,6 @@
-Root: Rule
+Root: Rule | Comment
+
+Comment: "//" <text: /[^\n]*/> => Comment(text)
 
 Rule: <name: RuleName> ':' <pattern: Pattern>
 Pattern: Alternatives

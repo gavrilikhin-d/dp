@@ -13,7 +13,19 @@ use crate::{
     rule, rule_ref, seq, Expression, Pattern, Rule,
 };
 
-rule!(struct Root: Rule);
+rule!(struct Root: {alts!(Rule | Comment)});
+
+rule!(struct Comment: "////" {text: r"/[^\n]*/"} => cast!(Comment(text)));
+#[test]
+fn comment() {
+    let mut context = Context::default();
+    let r = Comment::rule();
+    println!("{:?}", r);
+    assert_eq!(
+        r.parse("// text", &mut context).unwrap().ast,
+        json!({"Comment": "text"})
+    );
+}
 
 rule!(struct Char: r"/'.'/");
 #[test]
