@@ -76,7 +76,6 @@ impl LanguageServer for Backend {
                         },
                     ),
                 ),
-                // definition: Some(GotoCapability::default()),
                 definition_provider: Some(OneOf::Left(true)),
                 references_provider: Some(OneOf::Left(true)),
                 rename_provider: Some(OneOf::Left(true)),
@@ -84,6 +83,7 @@ impl LanguageServer for Backend {
             },
         })
     }
+
     async fn initialized(&self, _: InitializedParams) {
         self.client
             .log_message(MessageType::INFO, "initialized!")
@@ -138,7 +138,6 @@ impl LanguageServer for Backend {
             let position = params.text_document_position_params.position;
             let char = rope.try_line_to_char(position.line as usize).ok()?;
             let offset = char + position.character as usize;
-            // self.client.log_message(MessageType::INFO, &format!("{:#?}, {}", ast.value(), offset)).await;
             let span = get_definition(&ast, offset);
             self.client
                 .log_message(MessageType::INFO, &format!("{:?}, ", span))
@@ -514,14 +513,8 @@ impl Backend {
                 };
 
                 || -> Option<Diagnostic> {
-                    // let start_line = rope.try_char_to_line(span.start)?;
-                    // let first_char = rope.try_line_to_char(start_line)?;
-                    // let start_column = span.start - first_char;
                     let start_position = offset_to_position(span.start, &rope)?;
                     let end_position = offset_to_position(span.end, &rope)?;
-                    // let end_line = rope.try_char_to_line(span.end)?;
-                    // let first_char = rope.try_line_to_char(end_line)?;
-                    // let end_column = span.end - first_char;
                     Some(Diagnostic::new_simple(
                         Range::new(start_position, end_position),
                         message,
@@ -537,9 +530,6 @@ impl Backend {
         if let Some(ast) = ast {
             self.ast_map.insert(params.uri.to_string(), ast);
         }
-        // self.client
-        //     .log_message(MessageType::INFO, &format!("{:?}", semantic_tokens))
-        //     .await;
         self.semantic_token_map
             .insert(params.uri.to_string(), semantic_tokens);
     }
@@ -560,7 +550,6 @@ async fn main() {
     })
     .finish();
 
-    serde_json::json!({"test": 20});
     Server::new(stdin, stdout, socket).serve(service).await;
 }
 

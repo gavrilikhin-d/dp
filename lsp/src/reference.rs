@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use chumsky::Span;
 use im_rc::Vector;
 
-
 use crate::chumsky::{Expr, Func, Spanned};
 #[derive(Debug, Clone)]
 pub enum ReferenceSymbol {
@@ -18,15 +17,9 @@ pub fn get_reference(
 ) -> Vec<Spanned<String>> {
     let mut vector = Vector::new();
     let mut reference_list = vec![];
-    // for (_, v) in ast.iter() {
-    //     if v.name.1.end < ident_offset {
-    //         vector.push_back(v.name.clone());
-    //     }
-    // }
     let mut kv_list = ast.iter().collect::<Vec<_>>();
     kv_list.sort_by(|a, b| a.1.name.start().cmp(&b.1.name.start()));
     let mut reference_symbol = ReferenceSymbol::Founding(ident_offset);
-    // let mut fn_vector = Vector::new();
     for (_, v) in kv_list {
         let (_, range) = &v.name;
         if ident_offset >= range.start && ident_offset < range.end {
@@ -84,17 +77,6 @@ pub fn get_reference_of_expr(
                     };
                 }
             }
-            // if ident_offset >= local.1.start && ident_offset < local.1.end {
-            //     let index = definition_ass_list
-            //         .iter()
-            //         .position(|decl| decl.0 == local.0);
-            //     (
-            //         false,
-            //         index.map(|i| definition_ass_list.get(i).unwrap().clone()),
-            //     )
-            // } else {
-            //     (true, None)
-            // }
         }
         Expr::Let(name, lhs, rest, name_span) => {
             let new_decl = Vector::unit((name.clone(), name_span.clone()));

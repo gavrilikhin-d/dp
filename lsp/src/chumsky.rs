@@ -516,7 +516,6 @@ pub fn parse(
     let (tokens, errs) = lexer().parse_recovery(src);
 
     let (ast, tokenize_errors, semantic_tokens) = if let Some(tokens) = tokens {
-        // info!("Tokens = {:?}", tokens);
         let semantic_tokens = tokens
             .iter()
             .filter_map(|(token, span)| match token {
@@ -595,19 +594,6 @@ pub fn parse(
         let (ast, parse_errs) =
             funcs_parser().parse_recovery(Stream::from_iter(len..len + 1, tokens.into_iter()));
 
-        // println!("{:#?}", ast);
-        // if let Some(funcs) = ast.filter(|_| errs.len() + parse_errs.len() == 0) {
-        //     if let Some(main) = funcs.get("main") {
-        //         assert_eq!(main.args.len(), 0);
-        //         match eval_expr(&main.body, &funcs, &mut Vec::new()) {
-        //             Ok(val) => println!("Return value: {}", val),
-        //             Err(e) => errs.push(Simple::custom(e.span, e.msg)),
-        //         }
-        //     } else {
-        //         panic!("No main function!");
-        //     }
-        // }
-
         (ast, parse_errs, semantic_tokens)
     } else {
         (None, Vec::new(), vec![])
@@ -624,11 +610,4 @@ pub fn parse(
         .collect::<Vec<_>>();
 
     (ast, parse_errors, semantic_tokens)
-    // .for_each(|e| {
-    //     let report = match e.reason() {
-    //         chumsky::error::SimpleReason::Unclosed { span, delimiter } => {}
-    //         chumsky::error::SimpleReason::Unexpected => {}
-    //         chumsky::error::SimpleReason::Custom(msg) => {}
-    //     };
-    // });
 }
