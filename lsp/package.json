@@ -1,6 +1,6 @@
 {
-  "name": "nrs-language-server",
-  "description": "nano rust language server",
+  "name": "dp-language-server",
+  "description": "DP language server",
   "license": "MIT",
   "version": "1.5.0",
   "categories": [],
@@ -8,31 +8,28 @@
     "language-server",
     "tower-lsp"
   ],
-  "repository": {
-    "url": "https://github.com/IWANABETHATGUY/tower-lsp-boilerplate"
-  },
   "engines": {
     "vscode": "^1.66.0"
   },
   "enabledApiProposals": [],
   "activationEvents": [
-    "onLanguage:nrs"
+    "onLanguage:dp"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
       {
-        "id": "nrs",
+        "id": "dp",
         "extensions": [
-          ".nrs"
+          ".dp"
         ]
       }
     ],
     "configuration": {
       "type": "object",
-      "title": "nrs-language-server",
+      "title": "dp-language-server",
       "properties": {
-        "nrs-language-server.trace.server": {
+        "dp-language-server.trace.server": {
           "type": "string",
           "scope": "window",
           "enum": [

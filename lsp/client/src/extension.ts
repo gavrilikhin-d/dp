@@ -41,7 +41,7 @@ export async function activate(context: ExtensionContext) {
     const url = Uri.parse('/home/victor/Documents/test-dir/nrs/another.nrs')
     let document = await workspace.openTextDocument(uri);
     await window.showTextDocument(document);
-    
+
     // console.log(uri)
     window.activeTextEditor.document
     let editor = window.activeTextEditor;
@@ -51,8 +51,8 @@ export async function activate(context: ExtensionContext) {
 
   context.subscriptions.push(disposable);
 
-  const traceOutputChannel = window.createOutputChannel("Nrs Language Server trace");
-  const command = process.env.SERVER_PATH || "nrs-language-server";
+  const traceOutputChannel = window.createOutputChannel("DP Language Server Trace");
+  const command = process.env.SERVER_PATH || "dp-language-server";
   const run: Executable = {
     command,
     options: {
@@ -72,7 +72,7 @@ export async function activate(context: ExtensionContext) {
   // Options to control the language client
   let clientOptions: LanguageClientOptions = {
     // Register the server for plain text documents
-    documentSelector: [{ scheme: "file", language: "nrs" }],
+    documentSelector: [{ scheme: "file", language: "dp" }],
     synchronize: {
       // Notify the server about file changes to '.clientrc files contained in the workspace
       fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
@@ -81,7 +81,7 @@ export async function activate(context: ExtensionContext) {
   };
 
   // Create the language client and start the client.
-  client = new LanguageClient("nrs-language-server", "nrs language server", serverOptions, clientOptions);
+  client = new LanguageClient("dp-language-server", "DP language server", serverOptions, clientOptions);
   // activateInlayHints(context);
   client.start();
 }
