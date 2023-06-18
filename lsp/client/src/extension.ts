@@ -12,7 +12,7 @@ import {
 
 let client: LanguageClient;
 
-export const activate = (context: ExtensionContext) => {
+export const activate = (_context: ExtensionContext) => {
 	const run: Executable = {
 		command: process.env.SERVER_PATH || "dp-language-server",
 		options: {
