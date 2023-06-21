@@ -4,9 +4,7 @@
 		"definitionProvider": true,
 		"referencesProvider": true,
 		"renameProvider": true,
-		"textDocumentSync": {
-			"kind": "FULL"
-		},
+		"textDocumentSync": 1,
 		"completionProvider": {
 			"resolveProvider": false,
 			"triggerCharacters": [
@@ -20,31 +18,27 @@
 			}
 		},
 		"semanticTokensProvider": {
-			"textDocumentRegistrationOptions": {
-				"documentSelector": [
-					{
-						"language": "dp",
-						"scheme": "file"
-					}
+			"documentSelector": [
+				{
+					"language": "dp",
+					"scheme": "file"
+				}
+			],
+			"legend": {
+				"tokenModifiers": [],
+				"tokenTypes": [
+					"function",
+					"variable",
+					"string",
+					"comment",
+					"number",
+					"keyword",
+					"operator",
+					"parameter"
 				]
 			},
-			"semanticTokensOptions": {
-				"legend": {
-					"tokenTypes": [
-						"enumMember",
-						"keyword",
-						"number",
-						"operator",
-						"parameter",
-						"property",
-						"string",
-						"type",
-						"variable"
-					]
-				},
-				"range": true,
-				"full": true
-			}
+			"full": true,
+			"range": true
 		}
 	}
 }

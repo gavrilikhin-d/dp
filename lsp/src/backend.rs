@@ -1,10 +1,11 @@
 use std::collections::HashMap;
+use std::path::Path;
 
 use crate::chumsky::{parse, type_inference, Func, ImCompleteSemanticToken};
 use crate::completion::completion;
 use crate::jump_definition::get_definition;
 use crate::reference::get_reference;
-use crate::semantic_token::{semantic_token_from_ast, LEGEND_TYPE};
+use crate::semantic_token::semantic_token_from_ast;
 use dashmap::DashMap;
 use ropey::Rope;
 use serde::{Deserialize, Serialize};
@@ -27,69 +28,22 @@ pub struct Backend {
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
-        Ok(InitializeResult {
-            server_info: None,
-            offset_encoding: None,
-            capabilities: ServerCapabilities {
-                inlay_hint_provider: Some(OneOf::Left(true)),
-                text_document_sync: Some(TextDocumentSyncCapability::Kind(
-                    TextDocumentSyncKind::FULL,
-                )),
-                completion_provider: Some(CompletionOptions {
-                    resolve_provider: Some(false),
-                    trigger_characters: Some(vec![".".to_string()]),
-                    work_done_progress_options: Default::default(),
-                    all_commit_characters: None,
-                    completion_item: None,
-                }),
-                execute_command_provider: Some(ExecuteCommandOptions {
-                    commands: vec!["dummy.do_something".to_string()],
-                    work_done_progress_options: Default::default(),
-                }),
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("server.config.json");
+        let config = std::fs::read_to_string(path).expect("server's config not present");
 
-                workspace: Some(WorkspaceServerCapabilities {
-                    workspace_folders: Some(WorkspaceFoldersServerCapabilities {
-                        supported: Some(true),
-                        change_notifications: Some(OneOf::Left(true)),
-                    }),
-                    file_operations: None,
-                }),
-                semantic_tokens_provider: Some(
-                    SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
-                        SemanticTokensRegistrationOptions {
-                            text_document_registration_options: {
-                                TextDocumentRegistrationOptions {
-                                    document_selector: Some(vec![DocumentFilter {
-                                        language: Some("dp".to_string()),
-                                        scheme: Some("file".to_string()),
-                                        pattern: None,
-                                    }]),
-                                }
-                            },
-                            semantic_tokens_options: SemanticTokensOptions {
-                                work_done_progress_options: WorkDoneProgressOptions::default(),
-                                legend: SemanticTokensLegend {
-                                    token_types: LEGEND_TYPE.into(),
-                                    token_modifiers: vec![],
-                                },
-                                range: Some(true),
-                                full: Some(SemanticTokensFullOptions::Bool(true)),
-                            },
-                            static_registration_options: StaticRegistrationOptions::default(),
-                        },
-                    ),
-                ),
-                definition_provider: Some(OneOf::Left(true)),
-                references_provider: Some(OneOf::Left(true)),
-                rename_provider: Some(OneOf::Left(true)),
-                ..ServerCapabilities::default()
-            },
-        })
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("server is configured with:\n{config}"),
+            )
+            .await;
+
+        Ok(serde_json::from_str(&config).unwrap())
     }
 
     async fn initialized(&self, _: InitializedParams) {
         self.client
-            .log_message(MessageType::INFO, "initialized!")
+            .log_message(MessageType::INFO, "server is initialized")
             .await;
     }
 
