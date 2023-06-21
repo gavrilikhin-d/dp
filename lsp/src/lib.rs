@@ -1,8 +1,2 @@
-pub mod chumsky;
-pub mod completion;
-pub mod jump_definition;
-pub mod reference;
-pub mod semantic_token;
-
-pub mod backend;
-pub mod utils;
+mod server;
+pub use server::Server;
