@@ -1,5 +1,11 @@
+use dashmap::DashMap;
+use dp::parsers::Parser;
+use dp::Context;
 use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
+use tower_lsp::lsp_types::{
+    InitializeParams, InitializeResult, InitializedParams, MessageType, SemanticTokensParams,
+    SemanticTokensResult, Url,
+};
 use tower_lsp::{Client, LanguageServer};
 
 /// Implementation of Language Server with all needed state
@@ -7,12 +13,17 @@ use tower_lsp::{Client, LanguageServer};
 pub struct Server {
     /// Client to send messages to
     pub client: Client,
+    /// Contexts for each file
+    pub contexts: DashMap<Url, Context>,
 }
 
 impl Server {
     /// Create new [`Server`] for `client`
     pub fn new(client: Client) -> Self {
-        Self { client }
+        Self {
+            client,
+            contexts: DashMap::new(),
+        }
     }
 }
 
@@ -39,5 +50,15 @@ impl LanguageServer for Server {
 
     async fn shutdown(&self) -> Result<()> {
         Ok(())
+    }
+
+    async fn semantic_tokens_full(
+        &self,
+        params: SemanticTokensParams,
+    ) -> Result<Option<SemanticTokensResult>> {
+        let mut context = self.contexts.entry(params.text_document.uri).or_default();
+        let rule = context.find_rule("Root").expect("rule `Root` not found");
+        rule.parse("", &mut context).unwrap();
+        Ok(None)
     }
 }

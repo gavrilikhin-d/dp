@@ -33,6 +33,7 @@ fn without_quotes(ast: serde_json::Value, _: &mut Context) -> serde_json::Value 
 }
 
 /// Rule with action to be executed after parsing
+#[derive(Debug)]
 pub struct RuleWithAction {
     pub rule: Arc<Rule>,
     pub on_parsed: Option<OnParsedAction>,
@@ -58,7 +59,7 @@ impl From<Rule> for RuleWithAction {
 }
 
 /// Keys inside cache
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Key {
     /// Id of source
     pub source_id: u64,
@@ -70,6 +71,7 @@ pub struct Key {
 pub type Cache = HashMap<Key, Result<ParseResult, Error>>;
 
 /// Parsing context
+#[derive(Debug)]
 pub struct Context {
     /// Parsing rules
     pub rules: HashMap<String, RuleWithAction>,

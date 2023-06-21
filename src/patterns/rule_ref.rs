@@ -29,7 +29,9 @@ impl Parser for RuleReference {
     ) -> Result<ParseResult, Error> {
         match self {
             Self::Weak(name) => {
-                let rule = context.find_rule(name).expect("Rule not found");
+                let rule = context
+                    .find_rule(name)
+                    .expect(format!("Rule {name:?} not found").as_str());
                 rule.parse_at(source, at, context)
             }
             Self::Strong(rule) => rule.parse_at(source, at, context),
