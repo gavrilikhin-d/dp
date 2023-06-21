@@ -54,6 +54,13 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
 * [ ] Add syntax highlighting
+	  * [ ] Text as keywords
+	  * [ ] Regex
+	  * [ ] Strings
+	  * [ ] Numbers
+	  * [ ] Special symbols as operators or punctuators
+	  * [ ] Variables as identifiers
+	  * [ ] RuleName as types
 * [ ] Add documentation
 * [ ] Simplify separated patterns
 * [ ] Add `#[derive(Rule)]`
