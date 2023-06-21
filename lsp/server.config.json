@@ -1,36 +1,36 @@
 {
 	"capabilities": {
-		"inlay_hint_provider": true,
-		"definition_provider": true,
-		"references_provider": true,
-		"rename_provider": true,
-		"text_document_sync": {
-			"Kind": "FULL"
+		"inlayHintProvider": true,
+		"definitionProvider": true,
+		"referencesProvider": true,
+		"renameProvider": true,
+		"textDocumentSync": {
+			"kind": "FULL"
 		},
-		"completion_provider": {
-			"resolve_provider": false,
-			"trigger_characters": [
+		"completionProvider": {
+			"resolveProvider": false,
+			"triggerCharacters": [
 				"."
 			]
 		},
 		"workspace": {
-			"workspace_folders": {
+			"workspaceFolders": {
 				"supported": true,
-				"change_notifications": true
+				"changeNotifications": true
 			}
 		},
-		"semantic_tokens_provider": {
-			"text_document_registration_options": {
-				"document_selector": [
+		"semanticTokensProvider": {
+			"textDocumentRegistrationOptions": {
+				"documentSelector": [
 					{
 						"language": "dp",
 						"scheme": "file"
 					}
 				]
 			},
-			"semantic_tokens_options": {
+			"semanticTokensOptions": {
 				"legend": {
-					"token_types": [
+					"tokenTypes": [
 						"enumMember",
 						"keyword",
 						"number",
