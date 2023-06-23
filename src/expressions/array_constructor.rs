@@ -63,7 +63,7 @@ impl ArrayConstructor {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{arr, parsers::Parser, Context, UnderlyingRule};
+    use crate::{arr, parser::Parser, Context, UnderlyingRule};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

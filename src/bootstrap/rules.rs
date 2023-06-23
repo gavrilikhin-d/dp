@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::{parsers::Parser, Context, UnderlyingRule};
+use crate::{parser::Parser, Context, UnderlyingRule};
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 #[cfg(test)]

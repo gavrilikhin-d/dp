@@ -24,7 +24,7 @@ rule!(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{parsers::Parser, Context, UnderlyingRule};
+    use crate::{parser::Parser, Context, UnderlyingRule};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

@@ -118,7 +118,7 @@ mod test {
 
     use pretty_assertions::assert_eq;
 
-    use crate::{parsers::Parser, Context, Expression, UnderlyingRule};
+    use crate::{parser::Parser, Context, Expression, UnderlyingRule};
 
     #[test]
     fn expression() {

@@ -175,7 +175,7 @@ impl<'de> Deserialize<'de> for ObjectConstructor {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{obj, parsers::Parser, Context, UnderlyingRule};
+    use crate::{obj, parser::Parser, Context, UnderlyingRule};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
