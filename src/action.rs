@@ -55,7 +55,7 @@ pub fn merge(expr: impl Into<Expression>) -> Expression {
 
 #[cfg(test)]
 mod test {
-    use crate::{action::Action, parsers::Parser, Context, UnderlyingRule};
+    use crate::{action::Action, parser::Parser, Context, UnderlyingRule};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

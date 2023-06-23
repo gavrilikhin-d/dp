@@ -12,7 +12,7 @@ pub use patterns::Pattern;
 mod rule;
 pub use rule::*;
 
-pub mod parsers;
+pub mod parser;
 
 mod context;
 pub use context::*;

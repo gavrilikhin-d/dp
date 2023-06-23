@@ -4,9 +4,8 @@ use serde_json::json;
 use crate::{
     alts,
     bootstrap::rules::AtomicPattern,
-    errors::Error,
     obj,
-    parsers::{ParseResult, Parser},
+    parser::{ParseResult, Parser, Result},
     rule, rule_ref, seq, Context,
 };
 
@@ -83,12 +82,7 @@ impl Repeat {
 }
 
 impl Parser for Repeat {
-    fn parse_at<'s>(
-        &self,
-        source: &'s str,
-        mut at: usize,
-        context: &mut Context,
-    ) -> Result<ParseResult, Error> {
+    fn parse_at<'s>(&self, source: &'s str, mut at: usize, context: &mut Context) -> Result {
         debug_assert!(self.at_least <= self.at_most.unwrap_or(usize::MAX));
 
         let mut syntax = Vec::new();
@@ -132,7 +126,7 @@ mod test {
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
-    use crate::{errors::Expected, parsers::Parser, Context};
+    use crate::{errors::Expected, parser::Parser, Context};
 
     use super::Repeat;
 

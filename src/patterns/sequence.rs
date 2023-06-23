@@ -6,10 +6,8 @@ use serde_json::json;
 
 use crate::{
     action::Action,
-    alts,
-    errors::Error,
-    obj,
-    parsers::{ParseResult, Parser},
+    alts, obj,
+    parser::{ParseResult, Parser, Result},
     rule, rule_ref, seq, syntax, Context, Pattern,
 };
 
@@ -69,12 +67,7 @@ impl From<Vec<Pattern>> for Sequence {
 }
 
 impl Parser for Sequence {
-    fn parse_at<'s>(
-        &self,
-        source: &'s str,
-        mut at: usize,
-        context: &mut Context,
-    ) -> Result<ParseResult, Error> {
+    fn parse_at<'s>(&self, source: &'s str, mut at: usize, context: &mut Context) -> Result {
         let mut syntax = vec![];
         let mut ast = json!({});
         for pattern in &self.patterns {
@@ -167,7 +160,7 @@ fn sequence() {
 mod test {
     use serde_json::json;
 
-    use crate::{alts, obj, parsers::Parser, seq, Context};
+    use crate::{alts, obj, parser::Parser, seq, Context};
 
     use super::Sequence;
     use pretty_assertions::assert_eq;

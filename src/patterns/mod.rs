@@ -21,8 +21,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     arr,
     bootstrap::rules::Alternatives,
-    errors::{Error, Expected},
-    parsers::{ParseResult, Parser},
+    errors::Expected,
+    parser::{self, ParseResult, Parser},
     rule, seq, Context,
 };
 
@@ -224,12 +224,7 @@ impl<N: Into<String>, P: Into<Pattern>> From<(N, P)> for Pattern {
 }
 
 impl Parser for Pattern {
-    fn parse_at<'s>(
-        &self,
-        source: &'s str,
-        at: usize,
-        context: &mut Context,
-    ) -> Result<ParseResult, Error> {
+    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> parser::Result {
         match self {
             Pattern::Text(text) => {
                 Pattern::Regex(regex::escape(text)).parse_at(source, at, context)
@@ -310,7 +305,7 @@ mod test {
     use crate::{
         bootstrap::rules::Text,
         errors::Expected,
-        parsers::{ParseResult, Parser},
+        parser::{ParseResult, Parser},
         patterns::Named,
         syntax, Context, Pattern,
     };

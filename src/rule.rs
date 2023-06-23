@@ -10,8 +10,8 @@ use serde_json::json;
 
 use crate::{
     bootstrap::rules::RuleName,
-    errors::{CustomError, Error, Severity},
-    parsers::{ParseResult, Parser},
+    errors::{CustomError, Severity},
+    parser::{Parser, Result},
     rule, source_id, Context, Key, Pattern,
 };
 
@@ -63,12 +63,7 @@ impl Rule {
 }
 
 impl Parser for Rule {
-    fn parse_at<'s>(
-        &self,
-        source: &'s str,
-        at: usize,
-        context: &mut Context,
-    ) -> Result<ParseResult, Error> {
+    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> Result {
         let target = format!("{}@{at}", self.name);
 
         let err = self.using_call_depth(|depth| {
@@ -147,7 +142,7 @@ impl Parser for Rule {
     }
 }
 
-fn log_result(target: &str, at: usize, source: &str, result: &Result<ParseResult, Error>) {
+fn log_result(target: &str, at: usize, source: &str, result: &Result) {
     if log_enabled!(log::Level::Debug) {
         if result.is_err() {
             debug!(

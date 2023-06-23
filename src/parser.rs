@@ -11,18 +11,15 @@ pub struct ParseResult {
     pub ast: Value,
 }
 
+pub type Result = std::result::Result<ParseResult, Error>;
+
 /// Parse source code starting at given position
 pub trait Parser {
     /// Parse source code starting at given position
-    fn parse_at<'s>(
-        &self,
-        source: &'s str,
-        at: usize,
-        context: &mut Context,
-    ) -> Result<ParseResult, Error>;
+    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> Result;
 
     /// Parse source code from the beginning
-    fn parse<'s>(&self, source: &'s str, context: &mut Context) -> Result<ParseResult, Error> {
+    fn parse<'s>(&self, source: &'s str, context: &mut Context) -> Result {
         self.parse_at(source, 0, context)
     }
 }

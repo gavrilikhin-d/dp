@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use dp::{parsers::Parser, Context};
+use dp::{parser::Parser, Context};
 
 fn main() {
     pretty_env_logger::init();

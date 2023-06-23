@@ -2,8 +2,7 @@ use derive_more::From;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    errors::Error,
-    parsers::{ParseResult, Parser},
+    parser::{Parser, Result},
     Rule,
 };
 
@@ -21,12 +20,7 @@ impl From<&str> for RuleReference {
 }
 
 impl Parser for RuleReference {
-    fn parse_at<'s>(
-        &self,
-        source: &'s str,
-        at: usize,
-        context: &mut crate::Context,
-    ) -> Result<ParseResult, Error> {
+    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut crate::Context) -> Result {
         match self {
             Self::Weak(name) => {
                 let rule = context

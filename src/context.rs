@@ -13,11 +13,10 @@ use crate::{
         Identifier, Integer, NonEmptyObject, Object, Regex, Return, Root, RuleName, RuleReference,
         Text, Throw, Type, Typename, Value, Variable,
     },
-    errors::Error,
     expressions::{
         ArrayConstructor, ArrayElement, Cast, FieldInitializer, Initializer, ObjectConstructor,
     },
-    parsers::ParseResult,
+    parser,
     patterns::{Named, Repeat, Sequence},
     Expression, Pattern, Rule, UnderlyingRule,
 };
@@ -68,7 +67,7 @@ pub struct Key {
     /// Rule's name or pattern's id
     pub id: String,
 }
-pub type Cache = HashMap<Key, Result<ParseResult, Error>>;
+pub type Cache = HashMap<Key, parser::Result>;
 
 /// Parsing context
 #[derive(Debug)]
@@ -104,12 +103,12 @@ impl Context {
     }
 
     /// Cache parsing result at given position
-    pub fn cache(&mut self, key: Key, result: Result<ParseResult, Error>) {
+    pub fn cache(&mut self, key: Key, result: parser::Result) {
         self.cache.insert(key, result);
     }
 
     /// Fetch parsing result at given position from cache
-    pub fn fetch(&self, key: &Key) -> Option<&Result<ParseResult, Error>> {
+    pub fn fetch(&self, key: &Key) -> Option<&parser::Result> {
         self.cache.get(key)
     }
 }
@@ -197,7 +196,7 @@ mod test {
     use serde_json::json;
 
     use crate::{
-        bootstrap::rules::Root, errors::Expected, parsers::Parser, rule, source_id, Context, Key,
+        bootstrap::rules::Root, errors::Expected, parser::Parser, rule, source_id, Context, Key,
         Rule, UnderlyingRule,
     };
 

@@ -4,8 +4,7 @@ use serde_json::json;
 
 use crate::{
     bootstrap::rules::Identifier,
-    errors::Error,
-    parsers::{ParseResult, Parser},
+    parser::{Parser, Result},
     rule, Context, Pattern,
 };
 
@@ -44,12 +43,7 @@ fn named() {
 }
 
 impl Parser for Named {
-    fn parse_at<'s>(
-        &self,
-        source: &'s str,
-        at: usize,
-        context: &mut Context,
-    ) -> Result<ParseResult, Error> {
+    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> Result {
         let mut result = self.pattern.parse_at(source, at, context)?;
         result.syntax = result.syntax.with_name(&self.name);
         result.ast = json!({&self.name: result.ast});
