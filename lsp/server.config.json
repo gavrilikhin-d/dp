@@ -1,9 +1,9 @@
 {
 	"capabilities": {
-		"inlayHintProvider": true,
-		"definitionProvider": true,
-		"referencesProvider": true,
-		"renameProvider": true,
+		"inlayHintProvider": false,
+		"definitionProvider": false,
+		"referencesProvider": false,
+		"renameProvider": false,
 		"textDocumentSync": 1,
 		"completionProvider": {
 			"resolveProvider": false,
@@ -13,8 +13,8 @@
 		},
 		"workspace": {
 			"workspaceFolders": {
-				"supported": true,
-				"changeNotifications": true
+				"supported": false,
+				"changeNotifications": false
 			}
 		},
 		"semanticTokensProvider": {
@@ -37,8 +37,8 @@
 					"parameter"
 				]
 			},
-			"full": true,
-			"range": true
+			"full": false,
+			"range": false
 		}
 	}
 }
