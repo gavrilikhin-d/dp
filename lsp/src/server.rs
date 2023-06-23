@@ -1,10 +1,11 @@
 use dashmap::DashMap;
-use dp::parsers::Parser;
+use dp::parser::{self, Parser};
 use dp::Context;
+use miette::Diagnostic as MietteDiagnostic;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
-    InitializeParams, InitializeResult, InitializedParams, MessageType, SemanticTokensParams,
-    SemanticTokensResult, Url,
+    Diagnostic, DidOpenTextDocumentParams, InitializeParams, InitializeResult, InitializedParams,
+    MessageType, NumberOrString, Position, Range, SemanticTokensParams, SemanticTokensResult, Url,
 };
 use tower_lsp::{Client, LanguageServer};
 
@@ -13,8 +14,8 @@ use tower_lsp::{Client, LanguageServer};
 pub struct Server {
     /// Client to send messages to
     pub client: Client,
-    /// Contexts for each file
-    pub contexts: DashMap<Url, Context>,
+    /// Map of documents and their states
+    pub documents_state: DashMap<Url, parser::Result>,
 }
 
 impl Server {
@@ -22,7 +23,7 @@ impl Server {
     pub fn new(client: Client) -> Self {
         Self {
             client,
-            contexts: DashMap::new(),
+            documents_state: DashMap::new(),
         }
     }
 }
@@ -52,13 +53,35 @@ impl LanguageServer for Server {
         Ok(())
     }
 
+    async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        let text = params.text_document.text.as_str();
+        let uri = params.text_document.uri;
+        let version = params.text_document.version;
+
+        let mut context = dp::Context::default();
+        let rule = context.find_rule("Root").expect("rule `Root` not found");
+        let result = rule.parse(text, &mut context);
+        self.documents_state.insert(uri.clone(), result.clone());
+
+        let mut diags = Vec::new();
+        if let Err(err) = result {
+            err.labels().iter().for_each(|label| {
+                let diag = Diagnostic::new_simple(
+                    Range::new(Position::new(0, 0), Position::new(0, 3)),
+                    "test error".to_string(),
+                );
+                diags.push(diag);
+            });
+        }
+        self.client
+            .publish_diagnostics(uri, diags, Some(version))
+            .await;
+    }
+
     async fn semantic_tokens_full(
         &self,
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
-        let mut context = self.contexts.entry(params.text_document.uri).or_default();
-        let rule = context.find_rule("Root").expect("rule `Root` not found");
-        rule.parse("", &mut context).unwrap();
         Ok(None)
     }
 }
