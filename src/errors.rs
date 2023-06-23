@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use derive_more::From;
-use miette::Diagnostic;
+use miette::{Diagnostic, LabeledSpan};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -53,48 +53,7 @@ error_enum!(
     CustomError
 );
 
-/// Severity of the error. Copied from miette to add `Serialize` and `Deserialize` traits.
-#[derive(Copy, Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub enum Severity {
-    /// Just some help. Here's how you could be doing it better.
-    Advice,
-    /// Warning. Please take note.
-    Warning,
-    /// Critical failure. The program cannot continue.
-    Error,
-}
-
-impl Default for Severity {
-    fn default() -> Self {
-        Severity::Error
-    }
-}
-
-impl From<Severity> for miette::Severity {
-    fn from(value: Severity) -> Self {
-        match value {
-            Severity::Advice => miette::Severity::Advice,
-            Severity::Warning => miette::Severity::Warning,
-            Severity::Error => miette::Severity::Error,
-        }
-    }
-}
-
-type Offset = usize;
-type Length = usize;
-
-/// A labeled [`SourceSpan`]. Copied from miette to add `Serialize` and `Deserialize` traits.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LabeledSpan {
-    pub label: Option<String>,
-    pub span: (Offset, Length),
-}
-
-impl From<LabeledSpan> for miette::LabeledSpan {
-    fn from(value: LabeledSpan) -> Self {
-        miette::LabeledSpan::new_with_span(value.label, value.span)
-    }
-}
+pub type Severity = miette::Severity;
 
 #[derive(Debug, Error, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct CustomError {
