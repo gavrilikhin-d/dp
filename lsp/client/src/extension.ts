@@ -17,9 +17,9 @@ export const activate = (_context: ExtensionContext) => {
 		command: process.env.SERVER_PATH || "dp-language-server",
 		options: {
 			env: {
-				...process.env,
 				// eslint-disable-next-line @typescript-eslint/naming-convention
 				RUST_LOG: "debug",
+				...process.env,
 			},
 		},
 	}
