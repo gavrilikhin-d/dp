@@ -310,11 +310,7 @@ mod tests {
 
         assert_eq!(
             rule.parse(
-                "List: '(' =>
-					throw CustomError {
-						message: \"expected closing ')'\"
-					}
-				",
+                "List: '(' => throw CustomError { message: \"expected closing ')'\"}",
                 &mut context
             )
             .ast

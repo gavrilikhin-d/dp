@@ -1,9 +1,9 @@
 Root: Statement*
 
-Statement: Comment* <rule: Rule> => rule
+Statement: (Comment '\n'?)* <rule: Rule> => rule
 
 Comment: "//" <text: /[^\n]*/> => Comment(text)
-Whitespace: /\s*/
+Whitespace: /[ ]*/
 
 Rule: <name: RuleName> ':' <pattern: Pattern> /[\n]?/
 RuleName

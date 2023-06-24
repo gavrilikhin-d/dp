@@ -10,7 +10,7 @@ use crate::{
     alts, cast, expr,
     expressions::{ArrayConstructor, Initializer, ObjectConstructor},
     obj,
-    patterns::{self, separated, Named, Sequence},
+    patterns::{separated, Named, Repeat, Sequence},
     rule, rule_ref, seq, Expression, Pattern, Rule,
 };
 
@@ -19,7 +19,7 @@ use crate::{
 // DON'T FORGET TO ADD RULE TO CONTEXT!
 // ====================================
 
-rule!(struct Root: {patterns::Repeat::zero_or_more(rule_ref!(Statement))});
+rule!(struct Root: {Repeat::zero_or_more(rule_ref!(Statement))});
 #[test]
 fn root() {
     let mut context = Context::default();
@@ -32,18 +32,18 @@ fn root() {
     );
 }
 
-rule!(struct Whitespace: r"/\s*/");
+rule!(struct Whitespace: r"/[ ]*/");
 #[test]
 fn whitespace() {
     let mut context = Context::new();
     let r = Whitespace::rule();
     assert_eq!(r.parse("", &mut context).ast.unwrap(), json!(""));
-    assert_eq!(r.parse(" \n\t", &mut context).ast.unwrap(), json!(" \n\t"));
+    assert_eq!(r.parse("   ", &mut context).ast.unwrap(), json!("   "));
 }
 
 rule!(
     struct Statement:
-        {patterns::Repeat::zero_or_more(rule_ref!(Comment))}
+        {Repeat::zero_or_more(seq!(Comment {Repeat::at_most_once('\n')}))}
         {rule: Rule} => rule
 );
 #[test]
@@ -254,7 +254,7 @@ rule!(
     struct NonEmptyObject:
     '{'
     {initializers: separated(rule_ref!(Initializer), ',')}
-    {patterns::Repeat::at_most_once(',')}
+    {Repeat::at_most_once(',')}
     '}'
     => merge(expr!(initializers))
 );
