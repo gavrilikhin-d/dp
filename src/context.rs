@@ -372,17 +372,17 @@ mod test {
         assert_eq!(rule_name.name, "RuleName");
         assert_eq!(rule_name.parse("Foo", &mut ctx).unwrap().ast, json!("Foo"));
         assert_eq!(
-            rule_name.parse("foo", &mut ctx).unwrap_err(),
-            Expected {
-                expected: "[A-Z][a-zA-Z0-9]*".into(),
-                at: 0
-            }
+            rule_name.parse("foo", &mut ctx).unwrap().syntax,
+            vec![
+                crate::syntax::Node::from(0..3).with_name("name"),
+                crate::errors::RuleNameNotCapitalized { at: 0..3 }.into()
+            ]
             .into()
         );
         assert_eq!(
             rule_name.parse("", &mut ctx).unwrap_err(),
             Expected {
-                expected: "[A-Z][a-zA-Z0-9]*".into(),
+                expected: "[a-z_][a-zA-Z0-9_]*".into(),
                 at: 0
             }
             .into()

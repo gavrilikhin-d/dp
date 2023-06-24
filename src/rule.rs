@@ -127,12 +127,14 @@ impl Parser for Rule {
                 res.ast = json!({ &self.name: res.ast.take() });
             }
 
-            if let Some(on_parsed) = context.on_parsed(&self.name) {
-                trace!(
-                    target: target.as_str(),
-                    "Calling {}", "on_parsed".bold()
-                );
-                res.ast = on_parsed(res.ast.take(), context);
+            if res.syntax.is_ok() {
+                if let Some(on_parsed) = context.on_parsed(&self.name) {
+                    trace!(
+                        target: target.as_str(),
+                        "Calling {}", "on_parsed".bold()
+                    );
+                    res.ast = on_parsed(res.ast.take(), context);
+                }
             }
         }
 

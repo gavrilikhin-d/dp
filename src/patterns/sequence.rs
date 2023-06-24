@@ -91,16 +91,13 @@ impl Parser for Sequence {
             for s in syntax.iter() {
                 if let syntax::Node::Named { name, node } = &s {
                     if let Some(r) = node.range() {
-                        variables.insert(format!("@{}", name), json!(Location::from(r)));
+                        variables.insert(format!("@{}", name), json!(r));
                     }
                 }
             }
             let result = action.execute(&variables);
             if let Err(error) = result {
-                println!(
-                    "{:?}",
-                    miette::Report::new(error).with_source_code(source.to_string())
-                );
+                syntax.push(error.into());
                 ast = json!(null);
             } else {
                 ast = result.unwrap();
@@ -111,29 +108,6 @@ impl Parser for Sequence {
             syntax: syntax.into(),
             ast: ast.into(),
         })
-    }
-}
-
-#[derive(Serialize, Deserialize, From)]
-enum Location {
-    Range {
-        start: usize,
-        end: usize,
-    },
-    #[serde(untagged)]
-    At(usize),
-}
-
-impl From<Range<usize>> for Location {
-    fn from(range: Range<usize>) -> Self {
-        if range.start == range.end {
-            Self::At(range.start)
-        } else {
-            Self::Range {
-                start: range.start,
-                end: range.end,
-            }
-        }
     }
 }
 

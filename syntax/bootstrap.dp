@@ -3,6 +3,10 @@ Root: Rule | Comment
 Comment: "//" <text: /[^\n]*/> => Comment(text)
 
 Rule: <name: RuleName> ':' <pattern: Pattern>
+RuleName
+	: /[A-Z][a-zA-Z0-9]*/
+	| <name: /[a-z_][a-zA-Z_0-9]*/>
+	=> throw RuleNameNotCapitalized { at: @name }
 Pattern: Alternatives
 Alternatives: Sequence ('|' Sequence)*
 Sequence: <patterns: Repeat+> <action: Action?>
@@ -20,8 +24,7 @@ AtomicPattern
 PatternInParentheses: '(' <pattern: Pattern> ')' => pattern
 Named: '<' <name: Identifier> ':' <pattern: Pattern> '>'
 Identifier: /[a-z_][a-zA-Z_0-9]*/>
-RuleReference: <name: RuleName> => RuleReference(name)
-RuleName: /[A-Z][a-zA-Z0-9]*/
+RuleReference: <name: /[A-Z][a-zA-Z0-9]*/> => RuleReference(name)
 Regex: //[^/]+//
 Text: Char | String | /[^\s*+?()|<:>{}=]+/
 Char: /'.'/

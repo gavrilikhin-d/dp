@@ -9,6 +9,7 @@ use crate::{
     action::merge,
     alts, cast, expr,
     expressions::{ArrayConstructor, Initializer, ObjectConstructor},
+    obj,
     patterns::{self, separated, Named, Sequence},
     rule, rule_ref, seq, Expression, Pattern, Rule,
 };
@@ -79,16 +80,36 @@ fn regex() {
     assert_eq!(r.parse("/ax?/", &mut context).unwrap().ast, json!("/ax?/"));
 }
 
-rule!(struct RuleName: r"/[A-Z][a-zA-Z0-9]*/");
+rule!(
+    struct RuleName: {
+        alts!(
+        r"/[A-Z][a-zA-Z0-9]*/",
+        seq!(
+            {name: r"/[a-z_][a-zA-Z0-9_]*/"}
+            => throw obj!(RuleNameNotCapitalized { at: expr!(@name) })
+        ))
+    }
+);
 #[test]
 fn rule_name() {
     let mut context = Context::default();
     let r = RuleName::rule();
     assert_eq!(r.parse("Rule", &mut context).unwrap().ast, json!("Rule"));
+
+    let res = r.parse("rule", &mut context).unwrap();
+    assert_eq!(res.ast, json!(null));
+    assert_eq!(
+        res.syntax,
+        vec![
+            crate::syntax::Node::from(0..4).with_name("name"),
+            crate::errors::RuleNameNotCapitalized { at: 0..4 }.into()
+        ]
+        .into()
+    )
 }
 
 rule!(
-    struct RuleReference: {name: RuleName} => cast!(RuleReference(name))
+    struct RuleReference: {name: r"/[A-Z][a-zA-Z0-9]*/"} => cast!(RuleReference(name))
 );
 #[test]
 fn rule_reference() {

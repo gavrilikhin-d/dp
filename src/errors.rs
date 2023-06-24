@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, ops::Range};
 
 use derive_more::From;
 use miette::{Diagnostic, LabeledSpan};
@@ -27,8 +27,8 @@ pub struct ExpectedRuleName {
 #[error("rule's name doesn't start with a capital letter")]
 pub struct RuleNameNotCapitalized {
     /// Offset of the first letter
-    #[label("not a capital letter")]
-    pub at: usize,
+    #[label("doesn't start with a capital letter")]
+    pub at: Range<usize>,
 }
 
 /// Helper macro to create error enumeration

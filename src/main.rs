@@ -27,9 +27,14 @@ fn main() {
             }
             continue;
         }
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&res.unwrap().ast).unwrap()
-        );
+        let res = res.unwrap();
+        let errors = res.syntax.errors().cloned().collect::<Vec<_>>();
+        println!("{}", serde_json::to_string_pretty(&res.ast).unwrap());
+        for err in errors {
+            println!(
+                "{:?}",
+                miette::Report::new(err).with_source_code(line.clone())
+            );
+        }
     }
 }
