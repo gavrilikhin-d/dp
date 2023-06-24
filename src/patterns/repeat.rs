@@ -5,7 +5,7 @@ use crate::{
     alts,
     bootstrap::rules::AtomicPattern,
     obj,
-    parser::{ParseResult, Parser, Result},
+    parser::{ParseOk, ParseResult, Parser},
     rule, rule_ref, seq, Context,
 };
 
@@ -82,7 +82,7 @@ impl Repeat {
 }
 
 impl Parser for Repeat {
-    fn parse_at<'s>(&self, source: &'s str, mut at: usize, context: &mut Context) -> Result {
+    fn parse_at<'s>(&self, source: &'s str, mut at: usize, context: &mut Context) -> ParseResult {
         debug_assert!(self.at_least <= self.at_most.unwrap_or(usize::MAX));
 
         let mut syntax = Vec::new();
@@ -105,7 +105,7 @@ impl Parser for Repeat {
             }
         }
 
-        Ok(ParseResult {
+        Ok(ParseOk {
             syntax: syntax.into(),
             ast: if self.at_most == Some(1) {
                 if asts.len() == 1 {

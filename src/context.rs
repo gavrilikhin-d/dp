@@ -67,7 +67,7 @@ pub struct Key {
     /// Rule's name or pattern's id
     pub id: String,
 }
-pub type Cache = HashMap<Key, parser::Result>;
+pub type Cache = HashMap<Key, parser::ParseResult>;
 
 /// Parsing context
 #[derive(Debug)]
@@ -103,12 +103,12 @@ impl Context {
     }
 
     /// Cache parsing result at given position
-    pub fn cache(&mut self, key: Key, result: parser::Result) {
+    pub fn cache(&mut self, key: Key, result: parser::ParseResult) {
         self.cache.insert(key, result);
     }
 
     /// Fetch parsing result at given position from cache
-    pub fn fetch(&self, key: &Key) -> Option<&parser::Result> {
+    pub fn fetch(&self, key: &Key) -> Option<&parser::ParseResult> {
         self.cache.get(key)
     }
 }

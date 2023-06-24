@@ -7,7 +7,7 @@ use serde_json::json;
 use crate::{
     action::Action,
     alts, obj,
-    parser::{ParseResult, Parser, Result},
+    parser::{ParseOk, ParseResult, Parser},
     rule, rule_ref, seq, syntax, Context, Pattern,
 };
 
@@ -67,7 +67,7 @@ impl From<Vec<Pattern>> for Sequence {
 }
 
 impl Parser for Sequence {
-    fn parse_at<'s>(&self, source: &'s str, mut at: usize, context: &mut Context) -> Result {
+    fn parse_at<'s>(&self, source: &'s str, mut at: usize, context: &mut Context) -> ParseResult {
         let mut syntax = vec![];
         let mut ast = json!({});
         for pattern in &self.patterns {
@@ -107,7 +107,7 @@ impl Parser for Sequence {
             }
         }
 
-        Ok(ParseResult {
+        Ok(ParseOk {
             syntax: syntax.into(),
             ast: ast.into(),
         })

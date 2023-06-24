@@ -22,7 +22,7 @@ use crate::{
     arr,
     bootstrap::rules::Alternatives,
     errors::Expected,
-    parser::{self, ParseResult, Parser},
+    parser::{self, ParseOk, Parser},
     rule, seq, Context,
 };
 
@@ -224,7 +224,12 @@ impl<N: Into<String>, P: Into<Pattern>> From<(N, P)> for Pattern {
 }
 
 impl Parser for Pattern {
-    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> parser::Result {
+    fn parse_at<'s>(
+        &self,
+        source: &'s str,
+        at: usize,
+        context: &mut Context,
+    ) -> parser::ParseResult {
         match self {
             Pattern::Text(text) => {
                 Pattern::Regex(regex::escape(text)).parse_at(source, at, context)
@@ -267,7 +272,7 @@ impl Parser for Pattern {
                         &source[end..line_end]
                     );
                 }
-                Ok(ParseResult {
+                Ok(ParseOk {
                     syntax: (start..end).into(),
                     ast: m.into(),
                 })
@@ -305,7 +310,7 @@ mod test {
     use crate::{
         bootstrap::rules::Text,
         errors::Expected,
-        parser::{ParseResult, Parser},
+        parser::{ParseOk, Parser},
         patterns::Named,
         syntax, Context, Pattern,
     };
@@ -317,7 +322,7 @@ mod test {
         assert_eq!(pattern, Pattern::Text("text".into()));
         assert_eq!(
             pattern.parse("text", &mut context).unwrap(),
-            ParseResult {
+            ParseOk {
                 syntax: (0..4).into(),
                 ast: json!("text")
             }
@@ -331,7 +336,7 @@ mod test {
         assert_eq!(pattern, Pattern::Regex(r"[^\s]+".into()));
         assert_eq!(
             pattern.parse("hello world", &mut context).unwrap(),
-            ParseResult {
+            ParseOk {
                 syntax: (0..5).into(),
                 ast: json!("hello")
             }
@@ -344,14 +349,14 @@ mod test {
         let pattern = Pattern::Alternatives(vec!["a".into(), "bc".into()]);
         assert_eq!(
             pattern.parse("a", &mut context).unwrap(),
-            ParseResult {
+            ParseOk {
                 syntax: (0..1).into(),
                 ast: json!("a")
             }
         );
         assert_eq!(
             pattern.parse("bc", &mut context).unwrap(),
-            ParseResult {
+            ParseOk {
                 syntax: (0..2).into(),
                 ast: json!("bc")
             }
@@ -372,7 +377,7 @@ mod test {
         let pattern = Pattern::Sequence(vec!["a".into(), "b".into()].into());
         assert_eq!(
             pattern.parse("ab", &mut context).unwrap(),
-            ParseResult {
+            ParseOk {
                 syntax: vec![(0..1).into(), (1..2).into()].into(),
                 ast: json!({})
             }
@@ -409,7 +414,7 @@ mod test {
         let pattern = crate::rule_ref!(Text);
         assert_eq!(
             pattern.parse("abc", &mut context).unwrap(),
-            ParseResult {
+            ParseOk {
                 syntax: (0..3).into(),
                 ast: json!("abc")
             }
@@ -428,7 +433,7 @@ mod test {
         .into();
         assert_eq!(
             pattern.parse("John", &mut context).unwrap(),
-            ParseResult {
+            ParseOk {
                 syntax: syntax::Node::Named {
                     name: "name".to_string(),
                     node: Box::new((0..4).into())

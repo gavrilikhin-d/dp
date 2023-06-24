@@ -27,7 +27,7 @@ pub struct DocumentState {
     /// Parser context
     pub context: Context,
     /// Parser result
-    pub result: parser::Result,
+    pub result: parser::ParseResult,
 }
 
 impl Server {
