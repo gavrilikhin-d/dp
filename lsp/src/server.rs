@@ -1,12 +1,13 @@
 use dashmap::DashMap;
-use dp::parser::{self, Parser};
+use dp::parser::{ParseResult, Parser};
 use dp::Context;
 use miette::Diagnostic as MietteDiagnostic;
-use ropey::Rope;
+use ropey::{LineColumn, Rope};
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
-    Diagnostic, DidOpenTextDocumentParams, InitializeParams, InitializeResult, InitializedParams,
-    MessageType, NumberOrString, Position, Range, SemanticTokensParams, SemanticTokensResult, Url,
+    Diagnostic, DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams,
+    InitializeResult, InitializedParams, MessageType, Position, Range, SemanticTokensParams,
+    SemanticTokensResult, Url,
 };
 use tower_lsp::{Client, LanguageServer};
 
@@ -23,11 +24,11 @@ pub struct Server {
 #[derive(Debug)]
 pub struct DocumentState {
     /// Text of the document
-    pub text: Rope,
+    pub rope: Rope,
     /// Parser context
     pub context: Context,
     /// Parser result
-    pub result: parser::ParseResult,
+    pub result: Option<ParseResult>,
 }
 
 impl Server {
@@ -37,6 +38,46 @@ impl Server {
             client,
             documents_state: DashMap::new(),
         }
+    }
+
+    /// Handle change of the document
+    pub async fn run_analysis_at(&self, uri: Url, at: usize) {
+        let mut state = self.documents_state.get_mut(&uri).unwrap();
+        let rope = state.rope.clone();
+
+        let rule = state.context.find_rule("Root").unwrap();
+        let result = rule.parse_at(rope.to_string().as_str(), at, &mut state.context);
+        let errors = result.syntax.errors().collect::<Vec<_>>();
+
+        let mut diags = Vec::new();
+        for err in errors {
+            if let Some(labels) = err.labels() {
+                labels.for_each(|label| {
+                    let offset = label.offset();
+                    let start = rope.char_to_line_column(offset);
+                    let end = rope.char_to_line_column(offset + label.len());
+                    let diag = Diagnostic::new_simple(
+                        Range::new(
+                            Position::new(
+                                start.line.try_into().unwrap(),
+                                start.column.try_into().unwrap(),
+                            ),
+                            Position::new(
+                                end.line.try_into().unwrap(),
+                                end.column.try_into().unwrap(),
+                            ),
+                        ),
+                        format!("{}", label.label().unwrap_or("")),
+                    );
+                    diags.push(diag);
+                });
+            }
+        }
+        self.client
+            .publish_diagnostics(uri.clone(), diags, None)
+            .await;
+
+        state.result = Some(result);
     }
 }
 
@@ -66,52 +107,38 @@ impl LanguageServer for Server {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        let text = params.text_document.text.as_str();
-        let rope = Rope::from_str(text);
-        let uri = params.text_document.uri;
-        let version = params.text_document.version;
-
-        let mut context = dp::Context::default();
-        let rule = context.find_rule("Root").expect("rule `Root` not found");
-        let result = rule.parse(text, &mut context);
-        let errors = result.syntax.errors().collect::<Vec<_>>();
-
-        let mut diags = Vec::new();
-        for err in errors {
-            if let Some(labels) = err.labels() {
-                labels.for_each(|label| {
-                    let offset = label.offset();
-                    let start = rope.char_to_line_column(offset);
-                    let end = rope.char_to_line_column(offset + label.len());
-                    let diag = Diagnostic::new_simple(
-                        Range::new(
-                            Position::new(
-                                start.line.try_into().unwrap(),
-                                start.column.try_into().unwrap(),
-                            ),
-                            Position::new(
-                                end.line.try_into().unwrap(),
-                                end.column.try_into().unwrap(),
-                            ),
-                        ),
-                        format!("{}", label.label().unwrap_or("")),
-                    );
-                    diags.push(diag);
-                });
-            }
-        }
-        self.client
-            .publish_diagnostics(uri.clone(), diags, Some(version))
-            .await;
+        let document = &params.text_document;
+        let uri = document.uri.clone();
 
         self.documents_state.insert(
-            uri,
+            uri.clone(),
             DocumentState {
-                text: rope,
-                context,
-                result,
+                rope: document.text.as_str().into(),
+                context: Context::default(),
+                result: None,
             },
         );
+
+        self.run_analysis_at(uri, 0).await;
+    }
+
+    async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        let uri = params.text_document.uri;
+        let mut state = self.documents_state.get_mut(&uri).unwrap();
+        for change in params.content_changes {
+            let range = change.range.unwrap();
+            let start = state.rope.line_column_to_char(LineColumn {
+                line: range.start.line as usize,
+                column: range.start.character as usize,
+            });
+            let end = start + change.range_length.unwrap() as usize;
+            state.rope.remove(start..end);
+            state.rope.insert(start, &change.text);
+        }
+
+        // FIXME: start from last untouched ast part
+        state.context = Context::default();
+        self.run_analysis_at(uri, 0).await;
     }
 
     async fn semantic_tokens_full(
