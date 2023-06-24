@@ -74,11 +74,7 @@ impl LanguageServer for Server {
         let mut context = dp::Context::default();
         let rule = context.find_rule("Root").expect("rule `Root` not found");
         let result = rule.parse(text, &mut context);
-        let errors = result
-            .as_ref()
-            .map(|r| r.syntax.errors())
-            .unwrap_or_else(|e| e.errors())
-            .collect::<Vec<_>>();
+        let errors = result.syntax.errors().collect::<Vec<_>>();
 
         let mut diags = Vec::new();
         for err in errors {
