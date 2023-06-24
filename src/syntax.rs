@@ -130,6 +130,16 @@ impl Node {
             },
         }
     }
+
+    /// Check if this syntax has no errors
+    pub fn is_ok(&self) -> bool {
+        !self.has_errors()
+    }
+
+    /// Check if this syntax has errors
+    pub fn has_errors(&self) -> bool {
+        self.errors().next().is_some()
+    }
 }
 
 impl<E: Into<Error>> From<E> for Node {
