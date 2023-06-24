@@ -14,7 +14,18 @@ use crate::{
     rule, rule_ref, seq, Expression, Pattern, Rule,
 };
 
-rule!(struct Root: {alts!(Rule | Comment)});
+// ====================================
+// IMPORTANT!!!
+// DON'T FORGET TO ADD RULE TO CONTEXT!
+// ====================================
+
+rule!(struct Root: {patterns::Repeat::zero_or_more(rule_ref!(Statement))});
+
+rule!(
+    struct Statement:
+        {patterns::Repeat::zero_or_more(rule_ref!(Comment))}
+        {rule: Rule} => rule
+);
 
 rule!(struct Comment: "////" {text: r"/[^\n]*/"} => cast!(Comment(text)));
 #[test]

@@ -1,4 +1,6 @@
-Root: Rule | Comment
+Root: Statement*
+
+Statement: Comment* <rule: Rule> => rule
 
 Comment: "//" <text: /[^\n]*/> => Comment(text)
 

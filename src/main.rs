@@ -15,7 +15,7 @@ fn main() {
         let mut line = String::new();
         std::io::stdin().read_line(&mut line).unwrap();
 
-        let root = context.find_rule("Root").unwrap();
+        let root = context.find_rule("Statement").unwrap();
 
         let res = root.parse(&line, &mut context);
         let errors = res.syntax.errors().cloned().collect::<Vec<_>>();
