@@ -136,6 +136,12 @@ macro_rules! action {
 /// Macro to simplify creation of expressions
 #[macro_export]
 macro_rules! expr {
+    (@) => {
+        $crate::Expression::Variable("@".to_string())
+    };
+    (@$var:ident) => {
+        $crate::Expression::Variable(format!("@{}", stringify!($var)))
+    };
     ($var:ident) => {
         $crate::Expression::Variable(stringify!($var).to_string())
     };
