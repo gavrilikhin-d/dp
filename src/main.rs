@@ -18,11 +18,13 @@ fn main() {
         let root = context.find_rule("Root").unwrap();
 
         let res = root.parse(&line, &mut context);
-        if let Err(err) = res {
-            println!(
-                "{:?}",
-                miette::Report::new(err.clone()).with_source_code(line.clone())
-            );
+        if let Err(syntax) = res {
+            for err in syntax.errors() {
+                println!(
+                    "{:?}",
+                    miette::Report::new(err.clone()).with_source_code(line.clone())
+                );
+            }
             continue;
         }
         println!(

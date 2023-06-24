@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::{errors::Error, syntax, Context};
+use crate::{syntax, Context};
 
 /// Result of parsing
 #[derive(Debug, PartialEq, Clone)]
@@ -11,7 +11,7 @@ pub struct ParseOk {
     pub ast: Value,
 }
 
-pub type ParseResult = Result<ParseOk, Error>;
+pub type ParseResult = Result<ParseOk, syntax::NodeWithErrors>;
 
 /// Parse source code starting at given position
 pub trait Parser {
