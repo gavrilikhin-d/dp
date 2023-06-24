@@ -4,14 +4,12 @@ use crate::{syntax, Context};
 
 /// Result of parsing
 #[derive(Debug, PartialEq, Clone)]
-pub struct ParseOk {
+pub struct ParseResult {
     /// Syntax tree
     pub syntax: syntax::Node,
-    /// AST
-    pub ast: Value,
+    /// AST, if parsing was successful
+    pub ast: Option<Value>,
 }
-
-pub type ParseResult = Result<ParseOk, syntax::Node>;
 
 /// Parse source code starting at given position
 pub trait Parser {

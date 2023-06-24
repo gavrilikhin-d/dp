@@ -18,23 +18,16 @@ fn main() {
         let root = context.find_rule("Root").unwrap();
 
         let res = root.parse(&line, &mut context);
-        if let Err(syntax) = res {
-            for err in syntax.errors() {
-                println!(
-                    "{:?}",
-                    miette::Report::new(err.clone()).with_source_code(line.clone())
-                );
-            }
-            continue;
-        }
-        let res = res.unwrap();
         let errors = res.syntax.errors().cloned().collect::<Vec<_>>();
-        println!("{}", serde_json::to_string_pretty(&res.ast).unwrap());
         for err in errors {
             println!(
                 "{:?}",
                 miette::Report::new(err).with_source_code(line.clone())
             );
+        }
+
+        if let Some(ast) = res.ast {
+            println!("{}", serde_json::to_string_pretty(&ast).unwrap());
         }
     }
 }

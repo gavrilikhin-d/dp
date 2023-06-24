@@ -32,7 +32,7 @@ fn named() {
     let mut context = Context::default();
     let r = Named::rule();
     assert_eq!(
-        r.parse("<name: x>", &mut context).unwrap().ast,
+        r.parse("<name: x>", &mut context).ast.unwrap(),
         json!({
             "Named": {
                 "name": "name",
@@ -44,10 +44,10 @@ fn named() {
 
 impl Parser for Named {
     fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> ParseResult {
-        let mut result = self.pattern.parse_at(source, at, context)?;
+        let mut result = self.pattern.parse_at(source, at, context);
         result.syntax = result.syntax.with_name(&self.name);
-        result.ast = json!({&self.name: result.ast});
-        Ok(result)
+        result.ast = result.ast.map(|ast| json!({&self.name: ast}));
+        result
     }
 }
 
@@ -71,7 +71,7 @@ fn test_named() {
         pattern: Box::new("/[A-z][a-z]*/".into()),
     };
     assert_eq!(
-        pattern.parse("John", &mut context).unwrap().ast,
+        pattern.parse("John", &mut context).ast.unwrap(),
         json!({"name": "John"}),
     );
 }

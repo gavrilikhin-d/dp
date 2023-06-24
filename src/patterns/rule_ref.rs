@@ -50,10 +50,10 @@ mod tests {
         let mut context = Context::default();
         let r = rule_ref!("Text");
         assert_eq!(r, Pattern::RuleReference(Box::new("Text".into())));
-        assert_eq!(r.parse("text", &mut context).unwrap().ast, json!("text"));
+        assert_eq!(r.parse("text", &mut context).ast.unwrap(), json!("text"));
 
         let r = rule_ref!(Text);
         assert_eq!(r, Pattern::RuleReference(Box::new("Text".into())));
-        assert_eq!(r.parse("text", &mut context).unwrap().ast, json!("text"));
+        assert_eq!(r.parse("text", &mut context).ast.unwrap(), json!("text"));
     }
 }

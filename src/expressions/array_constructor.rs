@@ -71,9 +71,9 @@ mod test {
     fn parse_array_element() {
         let mut context = Context::default();
         let r = ArrayElement::rule();
-        assert_eq!(r.parse("1", &mut context).unwrap().ast, json!(1));
+        assert_eq!(r.parse("1", &mut context).ast.unwrap(), json!(1));
         assert_eq!(
-            r.parse("...a", &mut context).unwrap().ast,
+            r.parse("...a", &mut context).ast.unwrap(),
             json!({"Expand": { "Variable": "a" }})
         );
     }
@@ -82,13 +82,13 @@ mod test {
     fn parse_array_constructor() {
         let mut context = Context::default();
         let r = ArrayConstructor::rule();
-        assert_eq!(r.parse("[]", &mut context).unwrap().ast, json!([]));
+        assert_eq!(r.parse("[]", &mut context).ast.unwrap(), json!([]));
         assert_eq!(
-            r.parse("[ a ]", &mut context).unwrap().ast,
+            r.parse("[ a ]", &mut context).ast.unwrap(),
             json!([{"Variable": "a" }])
         );
         assert_eq!(
-            r.parse("[ 1, ...a, 2 ]", &mut context).unwrap().ast,
+            r.parse("[ 1, ...a, 2 ]", &mut context).ast.unwrap(),
             json!([1, {"Expand": { "Variable": "a" }}, 2])
         );
     }

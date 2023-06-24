@@ -183,9 +183,9 @@ mod test {
     fn parse_field_initializer() {
         let mut context = Context::default();
         let r = FieldInitializer::rule();
-        assert_eq!(r.parse("a: 1", &mut context).unwrap().ast, json!({"a": 1}));
+        assert_eq!(r.parse("a: 1", &mut context).ast.unwrap(), json!({"a": 1}));
         assert_eq!(
-            r.parse("a", &mut context).unwrap().ast,
+            r.parse("a", &mut context).ast.unwrap(),
             json!({"a": { "Variable": "a" }})
         );
     }
@@ -194,33 +194,33 @@ mod test {
     fn parse_object_constructor() {
         let mut context = Context::default();
         let r = ObjectConstructor::rule();
-        assert_eq!(r.parse("{}", &mut context).unwrap().ast, json!({}));
+        assert_eq!(r.parse("{}", &mut context).ast.unwrap(), json!({}));
         assert_eq!(
-            r.parse("Typed {}", &mut context).unwrap().ast,
+            r.parse("Typed {}", &mut context).ast.unwrap(),
             json!({"Typed": {}})
         );
         assert_eq!(
-            r.parse("{ a }", &mut context).unwrap().ast,
+            r.parse("{ a }", &mut context).ast.unwrap(),
             json!({ "a": { "Variable": "a" } })
         );
         assert_eq!(
-            r.parse("Typed { a }", &mut context).unwrap().ast,
+            r.parse("Typed { a }", &mut context).ast.unwrap(),
             json!({"Typed": { "a": { "Variable": "a" }}})
         );
         assert_eq!(
-            r.parse("{ a: 'c' }", &mut context).unwrap().ast,
+            r.parse("{ a: 'c' }", &mut context).ast.unwrap(),
             json!({ "a": 'c' })
         );
         assert_eq!(
-            r.parse("Typed { a: 'c' }", &mut context).unwrap().ast,
+            r.parse("Typed { a: 'c' }", &mut context).ast.unwrap(),
             json!({"Typed": { "a": 'c' }})
         );
         assert_eq!(
-            r.parse("{ ...a }", &mut context).unwrap().ast,
+            r.parse("{ ...a }", &mut context).ast.unwrap(),
             json!({ "Expand": { "Variable": "a" } })
         );
         assert_eq!(
-            r.parse("Typed { ...a }", &mut context).unwrap().ast,
+            r.parse("Typed { ...a }", &mut context).ast.unwrap(),
             json!({"Typed": { "Expand": { "Variable": "a" }}})
         );
     }

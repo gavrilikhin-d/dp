@@ -22,7 +22,7 @@ use crate::{
     arr,
     bootstrap::rules::Alternatives,
     errors::Expected,
-    parser::{self, ParseOk, Parser},
+    parser::{ParseResult, Parser},
     rule, seq, Context,
 };
 
@@ -224,12 +224,7 @@ impl<N: Into<String>, P: Into<Pattern>> From<(N, P)> for Pattern {
 }
 
 impl Parser for Pattern {
-    fn parse_at<'s>(
-        &self,
-        source: &'s str,
-        at: usize,
-        context: &mut Context,
-    ) -> parser::ParseResult {
+    fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> ParseResult {
         match self {
             Pattern::Text(text) => {
                 Pattern::Regex(regex::escape(text)).parse_at(source, at, context)
@@ -246,11 +241,14 @@ impl Parser for Pattern {
                 let m = re.find(&source[at + trivia_size..]).map(|m| m.as_str());
                 if m.is_none() {
                     trace!(target: target.as_str(), "{}", "ERR".red().bold());
-                    return Err(Expected {
-                        expected: r.clone(),
-                        at: at.into(),
-                    }
-                    .into());
+                    return ParseResult {
+                        syntax: Expected {
+                            expected: r.clone(),
+                            at: at.into(),
+                        }
+                        .into(),
+                        ast: None,
+                    };
                 }
 
                 let m = m.unwrap();
@@ -272,10 +270,10 @@ impl Parser for Pattern {
                         &source[end..line_end]
                     );
                 }
-                Ok(ParseOk {
+                ParseResult {
                     syntax: (start..end).into(),
-                    ast: m.into(),
-                })
+                    ast: Some(m.into()),
+                }
             }
             Pattern::RuleReference(r) => r.parse_at(source, at, context),
             Pattern::Sequence(s) => s.parse_at(source, at, context),
@@ -283,13 +281,13 @@ impl Parser for Pattern {
                 debug_assert!(alts.len() >= 2);
 
                 let mut res = alts[0].parse_at(source, at, context);
-                if res.is_ok() {
+                if res.ast.is_some() {
                     return res;
                 }
 
                 for alt in alts[1..].iter() {
                     res = alt.parse_at(source, at, context);
-                    if res.is_ok() {
+                    if res.ast.is_some() {
                         break;
                     }
                 }
@@ -310,7 +308,7 @@ mod test {
     use crate::{
         bootstrap::rules::Text,
         errors::Expected,
-        parser::{ParseOk, Parser},
+        parser::{ParseResult, Parser},
         patterns::Named,
         syntax, Context, Pattern,
     };
@@ -321,10 +319,10 @@ mod test {
         let pattern: Pattern = "text".into();
         assert_eq!(pattern, Pattern::Text("text".into()));
         assert_eq!(
-            pattern.parse("text", &mut context).unwrap(),
-            ParseOk {
+            pattern.parse("text", &mut context),
+            ParseResult {
                 syntax: (0..4).into(),
-                ast: json!("text")
+                ast: Some(json!("text"))
             }
         );
     }
@@ -335,10 +333,10 @@ mod test {
         let pattern: Pattern = r"/[^\s]+/".into();
         assert_eq!(pattern, Pattern::Regex(r"[^\s]+".into()));
         assert_eq!(
-            pattern.parse("hello world", &mut context).unwrap(),
-            ParseOk {
+            pattern.parse("hello world", &mut context),
+            ParseResult {
                 syntax: (0..5).into(),
-                ast: json!("hello")
+                ast: Some(json!("hello"))
             }
         );
     }
@@ -348,21 +346,21 @@ mod test {
         let mut context = Context::default();
         let pattern = Pattern::Alternatives(vec!["a".into(), "bc".into()]);
         assert_eq!(
-            pattern.parse("a", &mut context).unwrap(),
-            ParseOk {
+            pattern.parse("a", &mut context),
+            ParseResult {
                 syntax: (0..1).into(),
-                ast: json!("a")
+                ast: Some(json!("a"))
             }
         );
         assert_eq!(
-            pattern.parse("bc", &mut context).unwrap(),
-            ParseOk {
+            pattern.parse("bc", &mut context),
+            ParseResult {
                 syntax: (0..2).into(),
-                ast: json!("bc")
+                ast: Some(json!("bc"))
             }
         );
         assert_eq!(
-            pattern.parse("c", &mut context).unwrap_err(),
+            pattern.parse("c", &mut context).syntax,
             Expected {
                 expected: "bc".to_string(),
                 at: 0
@@ -376,14 +374,14 @@ mod test {
         let mut context = Context::default();
         let pattern = Pattern::Sequence(vec!["a".into(), "b".into()].into());
         assert_eq!(
-            pattern.parse("ab", &mut context).unwrap(),
-            ParseOk {
+            pattern.parse("ab", &mut context),
+            ParseResult {
                 syntax: vec![(0..1).into(), (1..2).into()].into(),
-                ast: json!({})
+                ast: Some(json!({}))
             }
         );
         assert_eq!(
-            pattern.parse("b", &mut context).unwrap_err(),
+            pattern.parse("b", &mut context).syntax,
             Expected {
                 expected: "a".to_string(),
                 at: 0
@@ -391,7 +389,7 @@ mod test {
             .into()
         );
         assert_eq!(
-            pattern.parse("a", &mut context).unwrap_err(),
+            pattern.parse("a", &mut context).syntax,
             Expected {
                 expected: "b".to_string(),
                 at: 1
@@ -399,7 +397,7 @@ mod test {
             .into()
         );
         assert_eq!(
-            pattern.parse("", &mut context).unwrap_err(),
+            pattern.parse("", &mut context).syntax,
             Expected {
                 expected: "a".to_string(),
                 at: 0
@@ -413,10 +411,10 @@ mod test {
         let mut context = Context::default();
         let pattern = crate::rule_ref!(Text);
         assert_eq!(
-            pattern.parse("abc", &mut context).unwrap(),
-            ParseOk {
+            pattern.parse("abc", &mut context),
+            ParseResult {
                 syntax: (0..3).into(),
-                ast: json!("abc")
+                ast: Some(json!("abc"))
             }
         )
     }
@@ -432,13 +430,13 @@ mod test {
         }
         .into();
         assert_eq!(
-            pattern.parse("John", &mut context).unwrap(),
-            ParseOk {
+            pattern.parse("John", &mut context),
+            ParseResult {
                 syntax: syntax::Node::Named {
                     name: "name".to_string(),
                     node: Box::new((0..4).into())
                 },
-                ast: json!({"name": "John"})
+                ast: Some(json!({"name": "John"}))
             }
         );
     }

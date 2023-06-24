@@ -85,8 +85,10 @@ impl Parser for Rule {
                 target: target.as_str(),
                 "Recursion limit reached"
             );
-            let result = Err(err.into());
-            return result;
+            return ParseResult {
+                syntax: err.into(),
+                ast: None,
+            };
         }
 
         if let Some(res) = context.fetch(&self.key(source, at)) {
@@ -94,7 +96,7 @@ impl Parser for Rule {
                 target: target.as_str(),
                 "Cache hit"
             );
-            let msg = if res.is_err() {
+            let msg = if res.ast.is_none() {
                 "ERR".red().bold()
             } else {
                 "OK".green().bold()
@@ -113,7 +115,7 @@ impl Parser for Rule {
         log_result(target.as_str(), at, source, &result);
         self.using_call_depth(|depth| *depth -= 1);
 
-        if let Ok(ref mut res) = &mut result {
+        if result.ast.is_some() {
             // single unnamed -> transparent
             // has action -> transparent
             // named -> wrap
@@ -124,16 +126,16 @@ impl Parser for Rule {
                     .as_sequence()
                     .is_some_and(|s| s.has_named() && s.action.is_none())
             {
-                res.ast = json!({ &self.name: res.ast.take() });
+                result.ast = Some(json!({ &self.name: result.ast.unwrap().take() }));
             }
 
-            if res.syntax.is_ok() {
+            if result.syntax.is_ok() {
                 if let Some(on_parsed) = context.on_parsed(&self.name) {
                     trace!(
                         target: target.as_str(),
                         "Calling {}", "on_parsed".bold()
                     );
-                    res.ast = on_parsed(res.ast.take(), context);
+                    result.ast = Some(on_parsed(result.ast.unwrap().take(), context));
                 }
             }
         }
@@ -146,7 +148,7 @@ impl Parser for Rule {
 
 fn log_result(target: &str, at: usize, source: &str, result: &ParseResult) {
     if log_enabled!(log::Level::Debug) {
-        if result.is_err() {
+        if result.ast.is_none() {
             debug!(
                 target: target,
                 "{}", "ERR".red().bold()
@@ -154,7 +156,7 @@ fn log_result(target: &str, at: usize, source: &str, result: &ParseResult) {
             return;
         }
 
-        let range = result.as_ref().unwrap().syntax.range().unwrap_or(at..at);
+        let range = result.syntax.range().unwrap_or(at..at);
         let start = range.start;
         let end = range.end;
 
@@ -189,7 +191,7 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("Hello World", &mut context).unwrap().ast,
+            Test::rule().parse("Hello World", &mut context).ast.unwrap(),
             json!("Hello")
         );
     }
@@ -200,7 +202,7 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("Hello World", &mut context).unwrap().ast,
+            Test::rule().parse("Hello World", &mut context).ast.unwrap(),
             json!({"Test": {"text": "Hello"}})
         );
     }
@@ -211,7 +213,7 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("Hello World", &mut context).unwrap().ast,
+            Test::rule().parse("Hello World", &mut context).ast.unwrap(),
             json!("Hello")
         );
     }
@@ -222,7 +224,7 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("a b", &mut context).unwrap().ast,
+            Test::rule().parse("a b", &mut context).ast.unwrap(),
             json!({})
         );
     }
@@ -233,7 +235,7 @@ mod tests {
 
         let mut context = Context::new();
         assert_eq!(
-            Test::rule().parse("a b", &mut context).unwrap().ast,
+            Test::rule().parse("a b", &mut context).ast.unwrap(),
             json!({
 			"Test": {"name": "b"}})
         );
@@ -246,7 +248,7 @@ mod tests {
         assert_eq!(rule.name, "Rule");
 
         assert_eq!(
-            rule.parse("X: a b", &mut context).unwrap().ast,
+            rule.parse("X: a b", &mut context).ast.unwrap(),
             json!({
                 "Rule": {
                     "name": "X",
@@ -267,7 +269,7 @@ mod tests {
         assert_eq!(rule.name, "Rule");
 
         assert_eq!(
-            rule.parse("X: /ab?c/", &mut context).unwrap().ast,
+            rule.parse("X: /ab?c/", &mut context).ast.unwrap(),
             json!({
                 "Rule": {
                     "name": "X",
@@ -289,8 +291,8 @@ mod tests {
 
         assert_eq!(
             rule.parse("List: '(' <letters: x*> ')' => letters", &mut context)
-                .unwrap()
-                .ast,
+                .ast
+                .unwrap(),
             json!({
                 "Rule": {
                     "name": "List",
@@ -325,7 +327,7 @@ mod tests {
         rule!(struct List: '(' {letters: Repeat::zero_or_more("x")} ')' => letters);
         assert_eq!(rule.as_ref(), &List::rule());
         assert_eq!(
-            rule.parse("(x x)", &mut context).unwrap().ast,
+            rule.parse("(x x)", &mut context).ast.unwrap(),
             json!(["x", "x"])
         )
     }
@@ -345,8 +347,8 @@ mod tests {
 				",
                 &mut context
             )
-            .unwrap()
-            .ast,
+            .ast
+            .unwrap(),
             json!({
                 "Rule": {
                     "name": "List",
@@ -376,7 +378,7 @@ mod tests {
             )
         );
         assert_eq!(rule.as_ref(), &List::rule());
-        assert_eq!(rule.parse("(", &mut context).unwrap().ast, json!(null))
+        assert_eq!(rule.parse("(", &mut context).ast.unwrap(), json!(null))
     }
 
     #[test]
@@ -387,8 +389,8 @@ mod tests {
 
         assert_eq!(
             rule.parse("X: <ty: Type> => {} as ty", &mut context)
-                .unwrap()
-                .ast,
+                .ast
+                .unwrap(),
             json!({
                 "Rule": {
                     "name": "X",
@@ -427,7 +429,7 @@ mod tests {
         );
         assert_eq!(rule.as_ref(), &X::rule(),);
         assert_eq!(
-            rule.parse("Person", &mut context).unwrap().ast,
+            rule.parse("Person", &mut context).ast.unwrap(),
             json!({"Person": {}})
         )
     }
@@ -444,7 +446,7 @@ mod tests {
         });
         context.add_rule(E::rule().into());
         assert_eq!(
-            E::rule().parse("1 + 2 + 3", &mut context).unwrap().ast,
+            E::rule().parse("1 + 2 + 3", &mut context).ast.unwrap(),
             json!({
                 "E": {
                     "lhs": {

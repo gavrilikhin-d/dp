@@ -5,7 +5,7 @@ use crate::{
     alts,
     bootstrap::rules::AtomicPattern,
     obj,
-    parser::{ParseOk, ParseResult, Parser},
+    parser::{ParseResult, Parser},
     rule, rule_ref, seq, Context,
 };
 
@@ -88,26 +88,30 @@ impl Parser for Repeat {
         let mut syntax = Vec::new();
         let mut asts = Vec::new();
         for _ in 0..self.at_least {
-            let res = self.pattern.parse_at(source, at, context)?;
+            let res = self.pattern.parse_at(source, at, context);
+            if res.ast.is_none() {
+                return res;
+            }
+
             at = res.syntax.range().map_or(at, |r| r.end);
-            asts.push(res.ast);
+            asts.push(res.ast.unwrap());
             syntax.push(res.syntax);
         }
 
         for _ in self.at_least..self.at_most.unwrap_or(usize::MAX) {
             let res = self.pattern.parse_at(source, at, context);
-            if let Ok(res) = res {
-                at = res.syntax.range().map_or(at, |r| r.end);
-                asts.push(res.ast);
-                syntax.push(res.syntax);
-            } else {
+            if res.ast.is_none() {
                 break;
             }
+
+            at = res.syntax.range().map_or(at, |r| r.end);
+            asts.push(res.ast.unwrap());
+            syntax.push(res.syntax);
         }
 
-        Ok(ParseOk {
+        ParseResult {
             syntax: syntax.into(),
-            ast: if self.at_most == Some(1) {
+            ast: Some(if self.at_most == Some(1) {
                 if asts.len() == 1 {
                     asts.into_iter().next().unwrap()
                 } else {
@@ -115,8 +119,8 @@ impl Parser for Repeat {
                 }
             } else {
                 asts.into()
-            },
-        })
+            }),
+        }
     }
 }
 
@@ -134,9 +138,9 @@ mod test {
     fn repeat() {
         let mut context = Context::default();
         let r = Repeat::rule();
-        assert_eq!(r.parse("x", &mut context).unwrap().ast, json!("x"));
+        assert_eq!(r.parse("x", &mut context).ast.unwrap(), json!("x"));
         assert_eq!(
-            r.parse("x?", &mut context).unwrap().ast,
+            r.parse("x?", &mut context).ast.unwrap(),
             json!({
                 "Repeat": {
                     "pattern": "x",
@@ -145,7 +149,7 @@ mod test {
             })
         );
         assert_eq!(
-            r.parse("x*", &mut context).unwrap().ast,
+            r.parse("x*", &mut context).ast.unwrap(),
             json!({
                 "Repeat": {
                     "pattern": "x"
@@ -153,7 +157,7 @@ mod test {
             })
         );
         assert_eq!(
-            r.parse("x+?", &mut context).unwrap().ast,
+            r.parse("x+?", &mut context).ast.unwrap(),
             json!({
                 "Repeat": {
                     "pattern": "x",
@@ -167,19 +171,19 @@ mod test {
     fn at_most_once() {
         let mut context = Context::default();
         let pattern = Repeat::at_most_once("a");
-        assert_eq!(pattern.parse("", &mut context).unwrap().ast, json!(null));
-        assert_eq!(pattern.parse("a", &mut context).unwrap().ast, json!("a"));
-        assert_eq!(pattern.parse("aa", &mut context).unwrap().ast, json!("a"))
+        assert_eq!(pattern.parse("", &mut context).ast.unwrap(), json!(null));
+        assert_eq!(pattern.parse("a", &mut context).ast.unwrap(), json!("a"));
+        assert_eq!(pattern.parse("aa", &mut context).ast.unwrap(), json!("a"))
     }
 
     #[test]
     fn zero_or_more() {
         let mut context = Context::default();
         let pattern = Repeat::zero_or_more("a");
-        assert_eq!(pattern.parse("", &mut context).unwrap().ast, json!([]));
-        assert_eq!(pattern.parse("a", &mut context).unwrap().ast, json!(["a"]));
+        assert_eq!(pattern.parse("", &mut context).ast.unwrap(), json!([]));
+        assert_eq!(pattern.parse("a", &mut context).ast.unwrap(), json!(["a"]));
         assert_eq!(
-            pattern.parse("aa", &mut context).unwrap().ast,
+            pattern.parse("aa", &mut context).ast.unwrap(),
             json!(["a", "a"])
         );
     }
@@ -189,16 +193,16 @@ mod test {
         let mut context = Context::default();
         let pattern = Repeat::once_or_more("a");
         assert_eq!(
-            pattern.parse("", &mut context).unwrap_err(),
+            pattern.parse("", &mut context).syntax,
             Expected {
                 expected: "a".to_string(),
                 at: 0
             }
             .into()
         );
-        assert_eq!(pattern.parse("a", &mut context).unwrap().ast, json!(["a"]));
+        assert_eq!(pattern.parse("a", &mut context).ast.unwrap(), json!(["a"]));
         assert_eq!(
-            pattern.parse("aa", &mut context).unwrap().ast,
+            pattern.parse("aa", &mut context).ast.unwrap(),
             json!(["a", "a"])
         );
     }

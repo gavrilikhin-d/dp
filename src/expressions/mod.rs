@@ -124,13 +124,13 @@ mod test {
     fn expression() {
         let mut context = Context::default();
         let r = Expression::rule();
-        assert_eq!(r.parse("1", &mut context).unwrap().ast, json!(1));
+        assert_eq!(r.parse("1", &mut context).ast.unwrap(), json!(1));
         assert_eq!(
-            r.parse("var", &mut context).unwrap().ast,
+            r.parse("var", &mut context).ast.unwrap(),
             json!({"Variable": "var"})
         );
         assert_eq!(
-            r.parse("1 as Integer", &mut context).unwrap().ast,
+            r.parse("1 as Integer", &mut context).ast.unwrap(),
             json!({
                 "Cast": {
                     "ty": "Integer",

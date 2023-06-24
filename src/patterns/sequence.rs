@@ -1,13 +1,10 @@
-use std::ops::Range;
-
-use derive_more::From;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{
     action::Action,
     alts, obj,
-    parser::{ParseOk, ParseResult, Parser},
+    parser::{ParseResult, Parser},
     rule, rule_ref, seq, syntax, Context, Pattern,
 };
 
@@ -71,16 +68,20 @@ impl Parser for Sequence {
         let mut syntax = vec![];
         let mut ast = json!({});
         for pattern in &self.patterns {
-            let mut result = pattern.parse_at(source, at, context)?;
+            let result = pattern.parse_at(source, at, context);
+            if result.ast.is_none() {
+                return result;
+            }
+
             at = result.syntax.range().map_or(at, |r| r.end);
             syntax.push(result.syntax);
 
             if let Pattern::Named(_) = pattern {
                 ast.as_object_mut()
                     .unwrap()
-                    .append(&mut result.ast.as_object_mut().unwrap());
+                    .append(&mut result.ast.unwrap().as_object_mut().unwrap());
             } else if self.patterns.len() == 1 {
-                ast = result.ast;
+                ast = result.ast.unwrap();
                 break;
             }
         }
@@ -104,10 +105,10 @@ impl Parser for Sequence {
             }
         }
 
-        Ok(ParseOk {
+        ParseResult {
             syntax: syntax.into(),
             ast: ast.into(),
-        })
+        }
     }
 }
 
@@ -115,10 +116,10 @@ impl Parser for Sequence {
 fn sequence() {
     let mut context = Context::default();
     let r = Sequence::rule();
-    assert_eq!(r.parse("x", &mut context).unwrap().ast, json!("x"));
-    assert_eq!(r.parse("x y", &mut context).unwrap().ast, json!(["x", "y"]));
+    assert_eq!(r.parse("x", &mut context).ast.unwrap(), json!("x"));
+    assert_eq!(r.parse("x y", &mut context).ast.unwrap(), json!(["x", "y"]));
     assert_eq!(
-        r.parse("x y => 1", &mut context).unwrap().ast,
+        r.parse("x y => 1", &mut context).ast.unwrap(),
         json!({
             "Sequence": {
                 "patterns": ["x", "y"],
@@ -145,7 +146,7 @@ mod test {
         let p: Sequence = vec!['('.into(), ("pattern", "/[A-z][a-z]*/").into(), ')'.into()].into();
 
         assert_eq!(
-            p.parse("( x )", &mut context).unwrap().ast,
+            p.parse("( x )", &mut context).ast.unwrap(),
             json!({"pattern": "x"})
         );
     }
@@ -160,7 +161,7 @@ mod test {
             => pattern
         );
 
-        assert_eq!(p.parse("( x )", &mut context).unwrap().ast, json!("x"));
+        assert_eq!(p.parse("( x )", &mut context).ast.unwrap(), json!("x"));
     }
 
     #[test]
@@ -179,8 +180,8 @@ mod test {
             )
         );
 
-        assert_eq!(p.parse("( x )", &mut context).unwrap().ast, json!({}));
+        assert_eq!(p.parse("( x )", &mut context).ast.unwrap(), json!({}));
 
-        assert_eq!(p.parse("( x", &mut context).unwrap().ast, json!(null));
+        assert_eq!(p.parse("( x", &mut context).ast.unwrap(), json!(null));
     }
 }

@@ -33,7 +33,8 @@ If you want to extend parsers syntax, you must override it
 # Errors
 Create error rules for better errors description. By convention, they should start with `Invalid`.
 `@` means at current location,
-`@lparen` means at location of `lparen`
+`@lparen` means at location of `lparen`.
+Note that invalid syntax is still parsed and is accepted as valid alternative.
 ```
 Tuple: '(' ')' | InvalidTuple
 InvalidTuple: <lparen: '('> =>
@@ -49,7 +50,6 @@ InvalidTuple: <lparen: '('> =>
 To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 
 # Todo
-* [X] Array constructors
 * [ ] Remove `on_parse` function from rule
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
@@ -69,5 +69,4 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 	  * [ ] Add `Self::parse(str: &str)` method
       * [ ] Implement deserialize
 	  * [ ] On enums every variant is alternative
-* [x] Comments
 * [ ] Simplify rules
