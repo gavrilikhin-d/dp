@@ -2,6 +2,7 @@ use dashmap::DashMap;
 use dp::parser::{self, Parser};
 use dp::Context;
 use miette::Diagnostic as MietteDiagnostic;
+use ropey::Rope;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
     Diagnostic, DidOpenTextDocumentParams, InitializeParams, InitializeResult, InitializedParams,
@@ -15,7 +16,18 @@ pub struct Server {
     /// Client to send messages to
     pub client: Client,
     /// Map of documents and their states
-    pub documents_state: DashMap<Url, parser::Result>,
+    pub documents_state: DashMap<Url, DocumentState>,
+}
+
+/// State for single document
+#[derive(Debug)]
+pub struct DocumentState {
+    /// Text of the document
+    pub text: Rope,
+    /// Parser context
+    pub context: Context,
+    /// Parser result
+    pub result: parser::Result,
 }
 
 impl Server {
@@ -55,27 +67,50 @@ impl LanguageServer for Server {
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let text = params.text_document.text.as_str();
+        let rope = Rope::from_str(text);
         let uri = params.text_document.uri;
         let version = params.text_document.version;
 
         let mut context = dp::Context::default();
         let rule = context.find_rule("Root").expect("rule `Root` not found");
         let result = rule.parse(text, &mut context);
-        self.documents_state.insert(uri.clone(), result.clone());
 
         let mut diags = Vec::new();
-        if let Err(err) = result {
-            err.labels().iter().for_each(|label| {
-                let diag = Diagnostic::new_simple(
-                    Range::new(Position::new(0, 0), Position::new(0, 3)),
-                    "test error".to_string(),
-                );
-                diags.push(diag);
-            });
+        if let Err(err) = &result {
+            if let Some(labels) = err.labels() {
+                labels.for_each(|label| {
+                    let offset = label.offset();
+                    let start = rope.char_to_line_column(offset);
+                    let end = rope.char_to_line_column(offset + label.len());
+                    let diag = Diagnostic::new_simple(
+                        Range::new(
+                            Position::new(
+                                start.line.try_into().unwrap(),
+                                start.column.try_into().unwrap(),
+                            ),
+                            Position::new(
+                                end.line.try_into().unwrap(),
+                                end.column.try_into().unwrap(),
+                            ),
+                        ),
+                        format!("{}", label.label().unwrap_or("")),
+                    );
+                    diags.push(diag);
+                });
+            }
         }
         self.client
-            .publish_diagnostics(uri, diags, Some(version))
+            .publish_diagnostics(uri.clone(), diags, Some(version))
             .await;
+
+        self.documents_state.insert(
+            uri,
+            DocumentState {
+                text: rope,
+                context,
+                result,
+            },
+        );
     }
 
     async fn semantic_tokens_full(
