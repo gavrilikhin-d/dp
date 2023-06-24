@@ -18,17 +18,27 @@ X: b
 Y: X // Same as Y: b
 ```
 
-## Root rule
-Parser starts at `Root` rule.
-If you want to extend parsers syntax, you must override it
+## Statement rule
+Parsing in Repl starts from `Statement` rule.
+If you want to extend parser's syntax, you must override it
 ```
 >>> EmptyTuple: '(' ')' => "EmptyTuple"
->>> Root: Rule | EmptyTuple
-// >>> Root: Root.clone() | EmptyTuple // TODO: copy rule
+>>> Statement: Rule | EmptyTuple
+// >>> Statement: Statement.clone() | EmptyTuple // TODO: copy rule
 >>> ()
 "EmptyTuple"
-
 ```
+
+## Root rule
+Parsing in files starts from `Root` rule.
+If you want to extend parser's syntax, you must override it
+
+## Overriding whitespace
+Override `Whitespace` rule to change skipped characters
+```
+Whitespace: /[ ]*/ // Skip only spaces without tabs and newlines
+```
+There is `context.skip_whitespace` special variable that must be set to `true` for automatic whitespace skipping
 
 # Errors
 Create error rules for better errors description. By convention, they should start with `Invalid`.
@@ -53,6 +63,8 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 * [ ] Remove `on_parse` function from rule
 * [ ] Move logic to syntax
 * [ ] Export/Import rules
+* [ ] Rule copy
+* [x] Use special rules for whitespace skip
 * [ ] Add syntax highlighting
 	  * [ ] Text as keywords
 	  * [ ] Regex

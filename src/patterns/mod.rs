@@ -232,10 +232,18 @@ impl Parser for Pattern {
             Pattern::Regex(r) => {
                 let target = format!("/{r}/@{at}");
 
-                // Find first not whitespace character
-                let trivia_size = source[at..]
-                    .find(|c: char| !c.is_ascii_whitespace())
-                    .unwrap_or(source.len() - at);
+                // Find length of whitespace characters sequence
+                let mut trivia_size = 0;
+                if context.skip_whitespace {
+                    context.skip_whitespace = false;
+                    let whitespace = context.find_rule("Whitespace").unwrap();
+                    trivia_size = whitespace
+                        .parse_at(source, at, context)
+                        .syntax
+                        .range()
+                        .map_or(0, |r| r.len());
+                    context.skip_whitespace = true;
+                }
 
                 let re = Regex::new(format!("^{r}").as_str()).expect("Invalid regex");
                 let m = re.find(&source[at + trivia_size..]).map(|m| m.as_str());

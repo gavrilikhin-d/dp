@@ -11,7 +11,7 @@ use crate::{
     bootstrap::rules::{
         Alternatives, AtomicPattern, Char, Comment, Distinct, DistinctObject, DistinctValue,
         Expand, Identifier, Integer, NonEmptyObject, Object, Regex, Return, Root, RuleName,
-        RuleReference, Statement, Text, Throw, Type, Typename, Value, Variable,
+        RuleReference, Statement, Text, Throw, Type, Typename, Value, Variable, Whitespace,
     },
     expressions::{
         ArrayConstructor, ArrayElement, Cast, FieldInitializer, Initializer, ObjectConstructor,
@@ -76,6 +76,8 @@ pub struct Context {
     pub rules: HashMap<String, RuleWithAction>,
     /// Cached rules
     pub cache: Cache,
+    /// Should skip whitespace before parsing text and regex?
+    pub skip_whitespace: bool,
 }
 
 impl Context {
@@ -84,6 +86,7 @@ impl Context {
         Context {
             rules: HashMap::new(),
             cache: Cache::new(),
+            skip_whitespace: false,
         }
     }
 
@@ -116,6 +119,7 @@ impl Context {
 impl Default for Context {
     fn default() -> Self {
         let mut ctx = Context::new();
+        ctx.skip_whitespace = true;
         let rules = vec![
             Root::rule().into(),
             RuleWithAction::new(Char::rule(), without_quotes),
@@ -174,6 +178,7 @@ impl Default for Context {
             ArrayConstructor::rule().into(),
             Comment::rule().into(),
             Statement::rule().into(),
+            Whitespace::rule().into(),
         ];
         rules.into_iter().for_each(|r| {
             ctx.add_rule(r);

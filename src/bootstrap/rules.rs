@@ -21,18 +21,36 @@ use crate::{
 
 rule!(struct Root: {patterns::Repeat::zero_or_more(rule_ref!(Statement))});
 
+rule!(struct Whitespace: r"/\s*/");
+#[test]
+fn whitespace() {
+    let mut context = Context::new();
+    let r = Whitespace::rule();
+    assert_eq!(r.parse("", &mut context).ast.unwrap(), json!(""));
+    assert_eq!(r.parse(" \n\t", &mut context).ast.unwrap(), json!(" \n\t"));
+}
+
 rule!(
     struct Statement:
         {patterns::Repeat::zero_or_more(rule_ref!(Comment))}
         {rule: Rule} => rule
 );
+#[test]
+fn statement() {
+    let mut context = Context::default();
+    let r = Statement::rule();
+    rule!(struct R: "x");
+    assert_eq!(
+        r.parse("// comment\nR: x", &mut context).ast.unwrap(),
+        json!({"Rule": R::rule()})
+    );
+}
 
 rule!(struct Comment: "////" {text: r"/[^\n]*/"} => cast!(Comment(text)));
 #[test]
 fn comment() {
     let mut context = Context::default();
     let r = Comment::rule();
-    println!("{:?}", r);
     assert_eq!(
         r.parse("// text", &mut context).ast.unwrap(),
         json!({"Comment": "text"})

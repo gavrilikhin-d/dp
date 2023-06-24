@@ -222,7 +222,7 @@ mod tests {
     fn sequence_without_named_ignored() {
         rule!(struct Test: 'a' 'b');
 
-        let mut context = Context::new();
+        let mut context = Context::default();
         assert_eq!(
             Test::rule().parse("a b", &mut context).ast.unwrap(),
             json!({})
@@ -233,7 +233,7 @@ mod tests {
     fn sequence_with_named_wrapped() {
         rule!(struct Test: 'a' {name: "b"});
 
-        let mut context = Context::new();
+        let mut context = Context::default();
         assert_eq!(
             Test::rule().parse("a b", &mut context).ast.unwrap(),
             json!({
@@ -436,7 +436,7 @@ mod tests {
 
     #[test]
     fn left_recursion() {
-        let mut context = Context::new();
+        let mut context = Context::default();
 
         rule!(struct E: {
             alts!(

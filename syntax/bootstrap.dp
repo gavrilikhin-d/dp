@@ -3,6 +3,7 @@ Root: Statement*
 Statement: Comment* <rule: Rule> => rule
 
 Comment: "//" <text: /[^\n]*/> => Comment(text)
+Whitespace: /\s*/
 
 Rule: <name: RuleName> ':' <pattern: Pattern>
 RuleName
