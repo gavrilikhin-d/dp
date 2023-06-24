@@ -1,6 +1,6 @@
 mod named;
 use colored::Colorize;
-use log::{debug, log_enabled, trace};
+use log::trace;
 pub use named::*;
 
 mod repeat;
@@ -22,6 +22,7 @@ use crate::{
     arr,
     bootstrap::rules::Alternatives,
     errors::Expected,
+    log::log_with_highlight,
     parser::{ParseResult, Parser},
     rule, seq, Context,
 };
@@ -234,6 +235,37 @@ impl Parser for Pattern {
 
                 // Find length of whitespace characters sequence
                 let mut trivia_size = 0;
+
+                let try_parse = |trivia_size: usize| {
+                    let re = Regex::new(format!("^{r}").as_str()).expect("Invalid regex");
+                    let m = re.find(&source[at + trivia_size..]).map(|m| m.as_str());
+                    if m.is_none() {
+                        trace!(target: target.as_str(), "{}", "ERR".red().bold());
+                        return ParseResult {
+                            syntax: Expected {
+                                expected: r.clone(),
+                                at: at.into(),
+                            }
+                            .into(),
+                            ast: None,
+                        };
+                    }
+
+                    let m = m.unwrap();
+                    let start = at + trivia_size;
+                    let end = start + m.len();
+                    log_with_highlight(target.as_str(), at, source, start..end);
+                    ParseResult {
+                        syntax: (start..end).into(),
+                        ast: Some(m.into()),
+                    }
+                };
+
+                let result = try_parse(trivia_size);
+                if result.ast.is_some() {
+                    return result;
+                }
+
                 if context.skip_whitespace {
                     context.skip_whitespace = false;
                     let whitespace = context.find_rule("Whitespace").unwrap();
@@ -245,43 +277,7 @@ impl Parser for Pattern {
                     context.skip_whitespace = true;
                 }
 
-                let re = Regex::new(format!("^{r}").as_str()).expect("Invalid regex");
-                let m = re.find(&source[at + trivia_size..]).map(|m| m.as_str());
-                if m.is_none() {
-                    trace!(target: target.as_str(), "{}", "ERR".red().bold());
-                    return ParseResult {
-                        syntax: Expected {
-                            expected: r.clone(),
-                            at: at.into(),
-                        }
-                        .into(),
-                        ast: None,
-                    };
-                }
-
-                let m = m.unwrap();
-                let start = at + trivia_size;
-                let end = start + m.len();
-                if log_enabled!(log::Level::Debug) {
-                    let line_start = source[..at].rfind('\n').map(|i| i + 1).unwrap_or(0);
-                    let line_end = source[at..]
-                        .find('\n')
-                        .map(|i| at + i)
-                        .unwrap_or(source.len());
-
-                    debug!(
-                        target: target.as_str(),
-                        "{}{}{}{}",
-                        &source[line_start..at],
-                        source[at..start].on_bright_black(),
-                        source[start..end].on_bright_green(),
-                        &source[end..line_end]
-                    );
-                }
-                ParseResult {
-                    syntax: (start..end).into(),
-                    ast: Some(m.into()),
-                }
+                try_parse(trivia_size)
             }
             Pattern::RuleReference(r) => r.parse_at(source, at, context),
             Pattern::Sequence(s) => s.parse_at(source, at, context),

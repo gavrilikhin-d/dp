@@ -1,1 +1,2 @@
-rule: x
+// comment
+X: x

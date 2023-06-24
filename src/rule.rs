@@ -4,13 +4,14 @@ use std::{
 };
 
 use colored::Colorize;
-use log::{debug, log_enabled, trace};
+use log::{debug, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{
     bootstrap::rules::RuleName,
     errors::{CustomError, Severity},
+    log::log_result,
     parser::{ParseResult, Parser},
     rule, source_id, Context, Key, Pattern,
 };
@@ -34,7 +35,7 @@ pub struct Rule {
     /// Pattern to parse
     pub pattern: Pattern,
 }
-rule!(Rule: {name: RuleName} ':' {pattern: Pattern});
+rule!(Rule: {name: RuleName} ':' {pattern: Pattern} r"/[\n]?/");
 
 impl Rule {
     /// Create a new rule with a name and a pattern
@@ -143,37 +144,6 @@ impl Parser for Rule {
         context.cache(self.key(source, at), result.clone());
 
         result
-    }
-}
-
-fn log_result(target: &str, at: usize, source: &str, result: &ParseResult) {
-    if log_enabled!(log::Level::Debug) {
-        if result.ast.is_none() {
-            debug!(
-                target: target,
-                "{}", "ERR".red().bold()
-            );
-            return;
-        }
-
-        let range = result.syntax.range().unwrap_or(at..at);
-        let start = range.start;
-        let end = range.end;
-
-        let line_start = source[..at].rfind('\n').map(|i| i + 1).unwrap_or(0);
-        let line_end = source[at..]
-            .find('\n')
-            .map(|i| at + i)
-            .unwrap_or(source.len());
-
-        debug!(
-            target: target,
-            "{}{}{}{}",
-            &source[line_start..at],
-            source[at..start].on_bright_black(),
-            source[start..end].on_bright_green(),
-            &source[end..line_end]
-        );
     }
 }
 

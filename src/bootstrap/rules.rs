@@ -20,6 +20,17 @@ use crate::{
 // ====================================
 
 rule!(struct Root: {patterns::Repeat::zero_or_more(rule_ref!(Statement))});
+#[test]
+fn root() {
+    let mut context = Context::default();
+    let r = Root::rule();
+    rule!(struct X: "x");
+    rule!(struct Y: "y");
+    assert_eq!(
+        r.parse("X: x\nY: y", &mut context).ast.unwrap(),
+        json!([{"Rule": X::rule()}, {"Rule": Y::rule()}])
+    );
+}
 
 rule!(struct Whitespace: r"/\s*/");
 #[test]
@@ -53,7 +64,7 @@ fn comment() {
     let r = Comment::rule();
     assert_eq!(
         r.parse("// text", &mut context).ast.unwrap(),
-        json!({"Comment": "text"})
+        json!({"Comment": " text"})
     );
 }
 

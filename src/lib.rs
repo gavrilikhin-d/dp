@@ -1,6 +1,8 @@
 #![feature(let_chains)]
 #![feature(lazy_cell)]
 
+pub(crate) mod log;
+
 pub mod action;
 pub use action::Action;
 
