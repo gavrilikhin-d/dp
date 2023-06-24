@@ -40,6 +40,15 @@ Whitespace: /[ ]*/ // Skip only spaces without tabs and newlines
 ```
 There is `context.skip_whitespace` special variable that must be set to `true` for automatic whitespace skipping
 
+# Parsing whitespace characters
+Parser first tries to parse without ignoring whitespaces.
+This allows you to parse whitespaces, where needed.
+```
+BinaryOrPrefix
+	: '+' /[ ]+/ 'x' => "binary"
+	| '+' 'x' => "prefix"
+```
+
 # Errors
 Create error rules for better errors description. By convention, they should start with `Invalid`.
 `@` means at current location,

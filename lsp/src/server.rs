@@ -126,6 +126,7 @@ impl LanguageServer for Server {
         let uri = params.text_document.uri;
         let mut state = self.documents_state.get_mut(&uri).unwrap();
         for change in params.content_changes {
+            // FIXME: check when this is `None`
             let range = change.range.unwrap();
             let start = state.rope.line_column_to_char(LineColumn {
                 line: range.start.line as usize,
