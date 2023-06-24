@@ -11,7 +11,7 @@ pub struct ParseOk {
     pub ast: Value,
 }
 
-pub type ParseResult = Result<ParseOk, syntax::NodeWithErrors>;
+pub type ParseResult = Result<ParseOk, syntax::Node>;
 
 /// Parse source code starting at given position
 pub trait Parser {
