@@ -75,13 +75,15 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 * [ ] Rule copy
 * [x] Use special rules for whitespace skip
 * [ ] Add syntax highlighting
-	  * [ ] Text as keywords
-	  * [ ] Regex
-	  * [ ] Strings
-	  * [ ] Numbers
-	  * [ ] Special symbols as operators or punctuators
+	  * [x] Text as keywords
+	  * [x] Regex
+	  * [x] Strings
+	  * [x] Numbers
+	  * [x] Special symbols as operators or punctuators
 	  * [ ] Variables as identifiers
-	  * [ ] RuleName as types
+	  * [x] RuleName as types
+	  * [ ] Make syntax highlighting smarter
+	  * [ ] More token subkinds like `keyword.text`, `operator.lparent`, etc.
 * [ ] Add documentation
 * [ ] Simplify separated patterns
 * [ ] Add `#[derive(Rule)]`
