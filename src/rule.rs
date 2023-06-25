@@ -35,7 +35,7 @@ pub struct Rule {
     /// Pattern to parse
     pub pattern: Pattern,
 }
-rule!(Rule: {name: RuleName} ':' {pattern: Pattern} r"/[\n]?/");
+rule!(Rule: {name: RuleName} ':' {pattern: Pattern} "/;|($)/");
 
 impl Rule {
     /// Create a new rule with a name and a pattern

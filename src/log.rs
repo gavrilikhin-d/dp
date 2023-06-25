@@ -53,9 +53,9 @@ pub fn log_with_highlight(target: &str, at: usize, source: &str, range: Range<us
             &source[line_start..at],
             trivia,
             if range.is_empty() {
-                "|".dimmed().to_string()
+                "|".dimmed().italic()
             } else {
-                parsed
+                parsed.underline()
             },
             &source[end..line_end]
         );

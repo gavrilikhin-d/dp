@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::{parser::Parser, Context, UnderlyingRule};
+use crate::{parser::Parser, syntax::token::Kind, Context, UnderlyingRule};
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 #[cfg(test)]
@@ -11,9 +11,7 @@ use crate::{
     expressions::{ArrayConstructor, Initializer, ObjectConstructor},
     obj,
     patterns::{separated, Named, Repeat, Sequence},
-    rule, rule_ref, seq,
-    syntax::token::Kind,
-    Expression, Pattern, Rule,
+    rule, rule_ref, seq, Expression, Pattern, Rule,
 };
 
 // ====================================
@@ -21,7 +19,11 @@ use crate::{
 // DON'T FORGET TO ADD RULE TO CONTEXT!
 // ====================================
 
-rule!(struct Root: {Repeat::zero_or_more(rule_ref!(Statement))});
+rule!(
+    struct Root: {
+        Repeat::zero_or_more(rule_ref!(Statement))
+    }
+);
 #[test]
 fn root() {
     let mut context = Context::default();
@@ -29,32 +31,28 @@ fn root() {
     rule!(struct X: "x");
     rule!(struct Y: "y");
     assert_eq!(
-        r.parse("X: x\nY: y", &mut context).ast.unwrap(),
+        r.parse("X: x; Y: y", &mut context).ast.unwrap(),
         json!([{"Rule": X::rule()}, {"Rule": Y::rule()}])
     );
 }
 
-rule!(struct Whitespace: r"/[ ]*/");
+rule!(struct Whitespace: {alts!(r"/\s+/", rule_ref!(Comment))});
 #[test]
 fn whitespace() {
     let mut context = Context::new();
     let r = Whitespace::rule();
-    assert_eq!(r.parse("", &mut context).ast.unwrap(), json!(""));
-    assert_eq!(r.parse("   ", &mut context).ast.unwrap(), json!("   "));
+    assert_eq!(r.parse(" ", &mut context).ast.unwrap(), json!(" "));
+    assert_eq!(r.parse(" \t ", &mut context).ast.unwrap(), json!(" \t "));
 }
 
-rule!(
-    struct Statement:
-        {Repeat::zero_or_more(seq!(Comment {Repeat::at_most_once('\n')}))}
-        {rule: Rule} => rule
-);
+rule!(struct Statement: Rule);
 #[test]
 fn statement() {
     let mut context = Context::default();
     let r = Statement::rule();
     rule!(struct R: "x");
     assert_eq!(
-        r.parse("// comment\nR: x", &mut context).ast.unwrap(),
+        r.parse("R: x", &mut context).ast.unwrap(),
         json!({"Rule": R::rule()})
     );
 }
@@ -102,7 +100,7 @@ fn string() {
 
 rule!(
     struct Text: {
-        alts!(rule_ref!(Char), rule_ref!(String), r"/[^\s*+?()|<:>{}=]+/")
+        alts!(rule_ref!(Char), rule_ref!(String), r"/[^\s*+?()|<:>{}=;]+/")
     }
 );
 #[test]

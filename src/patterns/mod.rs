@@ -20,11 +20,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     arr,
-    bootstrap::rules::Alternatives,
+    bootstrap::rules::{Alternatives, Whitespace},
     errors::Expected,
     log::log_with_highlight,
     parser::{ParseResult, Parser},
-    rule, seq,
+    rule, rule_ref, seq,
     syntax::token::Kind,
     Context,
 };
@@ -282,20 +282,17 @@ impl Parser for Pattern {
                 };
 
                 let result = try_parse(trivia_size);
-                if result.ast.is_some() {
+                if result.ast.is_some() || !context.skip_whitespace {
                     return result;
                 }
 
-                if context.skip_whitespace {
-                    context.skip_whitespace = false;
-                    let whitespace = context.find_rule("Whitespace").unwrap();
-                    trivia_size = whitespace
-                        .parse_at(source, at, context)
-                        .syntax
-                        .range()
-                        .map_or(0, |r| r.len());
-                    context.skip_whitespace = true;
-                }
+                context.skip_whitespace = false;
+                trivia_size = Repeat::zero_or_more(rule_ref!(Whitespace))
+                    .parse_at(source, at, context)
+                    .syntax
+                    .range()
+                    .map_or(0, |r| r.len());
+                context.skip_whitespace = true;
 
                 try_parse(trivia_size)
             }
