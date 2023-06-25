@@ -19,19 +19,19 @@
 				}
 			],
 			"legend": {
-				"tokenModifiers": [],
+				"tokenModifiers": ["definition"],
 				"tokenTypes": [
-					"function",
-					"variable",
-					"string",
-					"comment",
-					"number",
 					"keyword",
 					"operator",
+					"comment",
+					"regexp",
+					"string",
+					"number",
+					"type",
 					"parameter"
 				]
 			},
-			"full": false,
+			"full": true,
 			"range": false
 		}
 	}
