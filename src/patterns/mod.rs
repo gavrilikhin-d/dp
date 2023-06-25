@@ -24,7 +24,9 @@ use crate::{
     errors::Expected,
     log::log_with_highlight,
     parser::{ParseResult, Parser},
-    rule, seq, Context,
+    rule, seq,
+    syntax::token::Kind,
+    Context,
 };
 
 /// Possible patterns
@@ -255,8 +257,26 @@ impl Parser for Pattern {
                     let start = at + trivia_size;
                     let end = start + m.len();
                     log_with_highlight(target.as_str(), at, source, start..end);
+
+                    // TODO: use action to set token kind
+                    let token_kind = if m.starts_with("/") && m.ends_with("/") {
+                        Kind::Regexp
+                    } else if m.starts_with("\"") && m.ends_with("\"") {
+                        Kind::String
+                    } else if m.starts_with("'") && m.ends_with("'") {
+                        Kind::String
+                    } else if m.chars().all(|c| c.is_numeric()) {
+                        Kind::Number
+                    } else if m.chars().all(|c| c.is_ascii_punctuation()) {
+                        Kind::Operator
+                    } else if m.chars().next().is_some_and(|c| c.is_uppercase()) {
+                        Kind::Type
+                    } else {
+                        Kind::Keyword
+                    };
+
                     ParseResult {
-                        syntax: (start..end).into(),
+                        syntax: (token_kind, start..end).into(),
                         ast: Some(m.into()),
                     }
                 };
@@ -314,7 +334,8 @@ mod test {
         errors::Expected,
         parser::{ParseResult, Parser},
         patterns::Named,
-        syntax, Context, Pattern,
+        syntax::{self, token::Kind},
+        Context, Pattern,
     };
 
     #[test]
@@ -325,7 +346,7 @@ mod test {
         assert_eq!(
             pattern.parse("text", &mut context),
             ParseResult {
-                syntax: (0..4).into(),
+                syntax: (Kind::Keyword, 0..4).into(),
                 ast: Some(json!("text"))
             }
         );
@@ -339,7 +360,7 @@ mod test {
         assert_eq!(
             pattern.parse("hello world", &mut context),
             ParseResult {
-                syntax: (0..5).into(),
+                syntax: (Kind::Keyword, 0..5).into(),
                 ast: Some(json!("hello"))
             }
         );
@@ -352,14 +373,14 @@ mod test {
         assert_eq!(
             pattern.parse("a", &mut context),
             ParseResult {
-                syntax: (0..1).into(),
+                syntax: (Kind::Keyword, 0..1).into(),
                 ast: Some(json!("a"))
             }
         );
         assert_eq!(
             pattern.parse("bc", &mut context),
             ParseResult {
-                syntax: (0..2).into(),
+                syntax: (Kind::Keyword, 0..2).into(),
                 ast: Some(json!("bc"))
             }
         );
@@ -380,7 +401,7 @@ mod test {
         assert_eq!(
             pattern.parse("ab", &mut context),
             ParseResult {
-                syntax: vec![(0..1).into(), (1..2).into()].into(),
+                syntax: vec![(Kind::Keyword, 0..1).into(), (Kind::Keyword, 1..2).into()].into(),
                 ast: Some(json!({}))
             }
         );
@@ -417,7 +438,7 @@ mod test {
         assert_eq!(
             pattern.parse("abc", &mut context),
             ParseResult {
-                syntax: (0..3).into(),
+                syntax: (Kind::Keyword, 0..3).into(),
                 ast: Some(json!("abc"))
             }
         )
@@ -438,7 +459,8 @@ mod test {
             ParseResult {
                 syntax: syntax::Node::Named {
                     name: "name".to_string(),
-                    node: Box::new((0..4).into())
+                    // FIXME: Kind::Keyword
+                    node: Box::new((Kind::Type, 0..4).into())
                 },
                 ast: Some(json!({"name": "John"}))
             }

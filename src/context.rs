@@ -203,7 +203,11 @@ mod test {
     use serde_json::json;
 
     use crate::{
-        bootstrap::rules::Root, errors::Expected, parser::Parser, rule, source_id, syntax::Node,
+        bootstrap::rules::Root,
+        errors::Expected,
+        parser::Parser,
+        rule, source_id,
+        syntax::{token::Kind, Node},
         Context, Key, Rule, UnderlyingRule,
     };
 
@@ -380,7 +384,8 @@ mod test {
         assert_eq!(
             rule_name.parse("foo", &mut ctx).syntax,
             vec![
-                crate::syntax::Node::from(0..3).with_name("name"),
+                // FIXME: Kind::Type
+                crate::syntax::Node::from((Kind::Keyword, 0..3)).with_name("name"),
                 crate::errors::RuleNameNotCapitalized { at: 0..3 }.into()
             ]
             .into()

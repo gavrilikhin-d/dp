@@ -11,7 +11,9 @@ use crate::{
     expressions::{ArrayConstructor, Initializer, ObjectConstructor},
     obj,
     patterns::{separated, Named, Repeat, Sequence},
-    rule, rule_ref, seq, Expression, Pattern, Rule,
+    rule, rule_ref, seq,
+    syntax::token::Kind,
+    Expression, Pattern, Rule,
 };
 
 // ====================================
@@ -141,7 +143,8 @@ fn rule_name() {
     assert_eq!(
         res.syntax,
         vec![
-            crate::syntax::Node::from(0..4).with_name("name"),
+            // FIXME: Kind::Type
+            crate::syntax::Node::from((Kind::Keyword, 0..4)).with_name("name"),
             crate::errors::RuleNameNotCapitalized { at: 0..4 }.into()
         ]
         .into()
