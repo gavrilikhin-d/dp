@@ -38,5 +38,5 @@ fn main() {
 
     let mut file = fs::File::create(&dest_path).unwrap();
     writeln!(file, "pub enum Token {{ {tokens} }}").unwrap();
-    writeln!(file, "pub enum Modifier {{{modifiers}}}").unwrap();
+    writeln!(file, "pub enum Modifier {{ {modifiers} }}").unwrap();
 }

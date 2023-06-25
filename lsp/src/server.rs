@@ -1,3 +1,4 @@
+use crate::Token;
 use dashmap::DashMap;
 use dp::parser::{ParseResult, Parser};
 use dp::Context;
@@ -6,8 +7,8 @@ use ropey::{LineColumn, Rope};
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
     Diagnostic, DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams,
-    InitializeResult, InitializedParams, MessageType, Position, Range, SemanticTokensParams,
-    SemanticTokensResult, Url,
+    InitializeResult, InitializedParams, MessageType, Position, Range, SemanticToken,
+    SemanticTokens, SemanticTokensParams, SemanticTokensResult, Url,
 };
 use tower_lsp::{Client, LanguageServer};
 
@@ -168,7 +169,7 @@ impl LanguageServer for Server {
         }
 
         state.context = Context::default();
-		// Drop state to avoid deadlock
+        // Drop state to avoid deadlock
         drop(state);
 
         self.run_analysis_at(uri, 0).await;
@@ -178,6 +179,55 @@ impl LanguageServer for Server {
         &self,
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
-        Ok(None)
+        let uri = params.text_document.uri;
+
+        let state = self.documents_state.get(&uri).unwrap();
+        if state.result.is_none() {
+            return Ok(None);
+        }
+        let rope = state.rope.clone();
+
+        let result = state.result.as_ref().unwrap();
+        let mut tokens = Vec::new();
+        let mut prev_range = Range::new(Position::new(0, 0), Position::new(0, 0));
+        for token in result.syntax.tokens() {
+            let range = rope.lsp_range(token.clone());
+            tokens.push(SemanticToken {
+                delta_line: range.start.line - prev_range.start.line,
+                delta_start: if range.start.line == prev_range.start.line {
+                    range.start.character - prev_range.start.character
+                } else {
+                    range.start.character
+                },
+                length: token.len() as u32,
+                // TODO: get real token types
+                token_type: Token::Keyword as u32,
+                token_modifiers_bitset: 0,
+            });
+            prev_range = range;
+        }
+        Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
+            result_id: None,
+            data: tokens,
+        })))
+    }
+}
+
+trait LSPPosition {
+    /// Convert char index to LSP position
+    fn lsp_position(&self, char_index: usize) -> Position;
+    /// Convert char range to LSP range
+    fn lsp_range(&self, char_range: impl Into<std::ops::Range<usize>>) -> Range {
+        let char_range = char_range.into();
+        let start = self.lsp_position(char_range.start);
+        let end = self.lsp_position(char_range.end);
+        Range::new(start, end)
+    }
+}
+
+impl LSPPosition for Rope {
+    fn lsp_position(&self, char_index: usize) -> Position {
+        let LineColumn { line, column } = self.char_to_line_column(char_index);
+        Position::new(line as u32, column as u32)
     }
 }
