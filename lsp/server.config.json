@@ -5,12 +5,6 @@
 		"referencesProvider": false,
 		"renameProvider": false,
 		"textDocumentSync": 1,
-		"completionProvider": {
-			"resolveProvider": false,
-			"triggerCharacters": [
-				"."
-			]
-		},
 		"workspace": {
 			"workspaceFolders": {
 				"supported": false,

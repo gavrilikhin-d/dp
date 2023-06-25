@@ -42,6 +42,16 @@ impl Server {
 
     /// Handle change of the document
     pub async fn run_analysis_at(&self, uri: Url, at: usize) {
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "running analysis for {}",
+                    uri.to_file_path().unwrap().display()
+                ),
+            )
+            .await;
+
         let mut state = self.documents_state.get_mut(&uri).unwrap();
         let rope = state.rope.clone();
 
@@ -103,12 +113,22 @@ impl LanguageServer for Server {
     }
 
     async fn shutdown(&self) -> Result<()> {
+        self.client
+            .log_message(MessageType::INFO, format!("server shutdown",))
+            .await;
         Ok(())
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let document = &params.text_document;
         let uri = document.uri.clone();
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("open {}", uri.to_file_path().unwrap().display()),
+            )
+            .await;
 
         self.documents_state.insert(
             uri.clone(),
@@ -124,6 +144,14 @@ impl LanguageServer for Server {
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let uri = params.text_document.uri;
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("{} has changed", uri.to_file_path().unwrap().display()),
+            )
+            .await;
+
         let mut state = self.documents_state.get_mut(&uri).unwrap();
         for change in params.content_changes {
             if let Some(range) = change.range {
@@ -139,8 +167,10 @@ impl LanguageServer for Server {
             }
         }
 
-        // FIXME: start from last untouched ast part
         state.context = Context::default();
+		// Drop state to avoid deadlock
+        drop(state);
+
         self.run_analysis_at(uri, 0).await;
     }
 
