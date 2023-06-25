@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     alts,
     bootstrap::rules::{Type, Value, Variable},
-    rule, Expression,
+    cast, obj, rule, seq, Expression,
 };
 
 /// Cast expression to type
@@ -15,10 +15,16 @@ pub struct Cast {
     pub ty: Expression,
 }
 rule!(
-    Cast:
-        {expr: alts!(Variable | Value)}
-        "as"
-        {ty: Type}
+    Cast: {
+        alts!(
+            seq!(
+                {expr: alts!(Variable | Value)} "as" {ty: Type} => obj!(Cast { expr, ty })
+            ),
+            seq!(
+                {ty: Type} '(' {expr: alts!(Variable | Value)} ')' => obj!(Cast { expr, ty })
+            )
+        )
+    }
 );
 
 #[cfg(test)]
@@ -47,6 +53,17 @@ mod tests {
                 "Cast": {
                     "ty": { "Variable": "ty" },
                     "expr": 1
+                }
+            })
+        );
+        assert_eq!(
+            r.parse("Ty(var)", &mut context).ast.unwrap(),
+            json!({
+                "Cast": {
+                    "ty": "Ty",
+                    "expr": {
+                        "Variable": "var"
+                    }
                 }
             })
         );

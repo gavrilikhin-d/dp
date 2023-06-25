@@ -149,7 +149,7 @@ impl Parser for Rule {
 
 #[cfg(test)]
 mod tests {
-    use crate::{alts, bootstrap::rules::Type, obj, patterns::Repeat, rule, seq};
+    use crate::{alts, bootstrap::rules::Type, cast, obj, patterns::Repeat, rule, seq};
 
     use super::*;
 
@@ -425,5 +425,30 @@ mod tests {
                 }
             })
         )
+    }
+
+    #[test]
+    fn deserialize_with_distinct_variable() {
+        let mut context = Context::default();
+        rule!(struct X: {x: 'x'} => cast!(X(x)));
+        assert_eq!(
+            X::rule().parse("x", &mut context).ast.unwrap(),
+            json!({"X": "x"})
+        );
+
+        let rule = context.find_rule("Rule").unwrap();
+        assert_eq!(rule.name, "Rule");
+
+        let ast = rule
+            .parse("X: <x: 'x'> => X(x)", &mut context)
+            .ast
+            .unwrap()
+            .get("Rule")
+            .unwrap()
+            .clone();
+        assert_eq!(ast, json!(X::rule()));
+        let r: Rule = serde_json::from_value(ast).unwrap();
+        assert_eq!(r, X::rule());
+        assert_eq!(r.parse("x", &mut context).ast.unwrap(), json!({"X": "x"}))
     }
 }

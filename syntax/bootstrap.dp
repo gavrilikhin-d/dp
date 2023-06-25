@@ -37,10 +37,8 @@ Action: "=>" <value: Throw | Return> => value;
 Return: <value: Expression> => Return(value);
 Throw: "throw" <error: Expression> => Throw(error);
 
-Distinct: DistinctObject | DistinctValue;
 ObjectConstructor: Object | DistinctObject;
 DistinctObject: <ty: Typename> <obj: Object> => obj as ty;
-DistinctValue: <ty: Typename> '(' <value: Value> ')' => value as ty;
 Object: '{' '}' | '{' Initializer (, Initializer)* ,? '}';
 Initializer: FieldInitializer | Expand;
 FieldInitializer
@@ -52,10 +50,11 @@ ArrayElement: Expand | Expression;
 Expression: Cast | Variable | Value;
 Typename: /[A-Z][a-zA-Z0-9]*/;
 Type: Typename | Variable;
-Cast: <expr: Value | Variable> as <ty: Type>;
+Cast
+	: <expr: Value | Variable> as <ty: Type> => Cast { expr, ty }
+	| <ty: Typename> '(' <expr: Value | Variable> ')' => Cast { expr, ty };
 Value
-	: DistinctValue
-	| ObjectConstructor
+	: ObjectConstructor
 	| ArrayConstructor
 	| String
 	| Char
