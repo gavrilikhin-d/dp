@@ -126,15 +126,17 @@ impl LanguageServer for Server {
         let uri = params.text_document.uri;
         let mut state = self.documents_state.get_mut(&uri).unwrap();
         for change in params.content_changes {
-            // FIXME: check when this is `None`
-            let range = change.range.unwrap();
-            let start = state.rope.line_column_to_char(LineColumn {
-                line: range.start.line as usize,
-                column: range.start.character as usize,
-            });
-            let end = start + change.range_length.unwrap() as usize;
-            state.rope.remove(start..end);
-            state.rope.insert(start, &change.text);
+            if let Some(range) = change.range {
+                let start = state.rope.line_column_to_char(LineColumn {
+                    line: range.start.line as usize,
+                    column: range.start.character as usize,
+                });
+                let end = start + change.range_length.unwrap() as usize;
+                state.rope.remove(start..end);
+                state.rope.insert(start, &change.text);
+            } else {
+                state.rope = change.text.into()
+            }
         }
 
         // FIXME: start from last untouched ast part
