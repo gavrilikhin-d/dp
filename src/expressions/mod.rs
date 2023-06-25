@@ -139,4 +139,16 @@ mod test {
             })
         );
     }
+
+    #[test]
+    fn deserialize_distinct_value() {
+        let mut context = Context::default();
+        let r = Expression::rule();
+        let ast = r.parse("X('a')", &mut context).ast.unwrap();
+        assert_eq!(ast, json!({ "X": 'a' }));
+        assert_eq!(
+            Expression::Value(json!({ "X": 'a' })),
+            serde_json::from_value(ast).unwrap()
+        );
+    }
 }

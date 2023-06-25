@@ -1,4 +1,4 @@
-Root: Statement;
+Root: /^/ <stmts: Statement*> /$/ => stmts;
 
 Statement: Rule;
 

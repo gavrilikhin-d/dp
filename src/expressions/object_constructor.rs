@@ -1,5 +1,5 @@
 use derive_more::From;
-use serde::{Deserialize, Serialize};
+use serde::{de::Error as SerdeError, Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use crate::{
@@ -144,7 +144,13 @@ impl<'de> Deserialize<'de> for ObjectConstructor {
             let key = obj.keys().next().unwrap().clone();
             if char::is_uppercase(key.chars().nth(0).unwrap()) {
                 ty = Some(key);
-                obj = obj.values().next().unwrap().as_object().unwrap().clone();
+                obj = obj
+                    .values()
+                    .next()
+                    .unwrap()
+                    .as_object()
+                    .ok_or(D::Error::custom("object is a distinct value"))?
+                    .clone();
             }
         }
 

@@ -94,3 +94,4 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 	  * [ ] On enums every variant is alternative
 * [ ] Simplify rules
 * [ ] Remove ';' at end of rules
+* [ ] Use `xxx#tag` to add tags like token kinds to values

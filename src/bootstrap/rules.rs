@@ -20,9 +20,8 @@ use crate::{
 // ====================================
 
 rule!(
-    struct Root: {
-        Repeat::zero_or_more(rule_ref!(Statement))
-    }
+    struct Root:
+        "/^/" {stmts: Repeat::zero_or_more(rule_ref!(Statement))} "/$/" => stmts
 );
 #[test]
 fn root() {
