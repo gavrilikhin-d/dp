@@ -11,7 +11,7 @@ use serde_json::json;
 use crate::{
     bootstrap::rules::RuleName,
     errors::{CustomError, Severity},
-    log::log_result,
+    log::{log_result, target_line_column},
     parser::{ParseResult, Parser},
     rule, source_id, Context, Key, Pattern,
 };
@@ -65,7 +65,7 @@ impl Rule {
 
 impl Parser for Rule {
     fn parse_at<'s>(&self, source: &'s str, at: usize, context: &mut Context) -> ParseResult {
-        let target = format!("{}@{at}", self.name);
+        let target = target_line_column(self.name.as_str(), at, source);
 
         let err = self.using_call_depth(|depth| {
             if *depth <= RECURSION_LIMIT {
@@ -93,10 +93,6 @@ impl Parser for Rule {
         }
 
         if let Some(res) = context.fetch(&self.key(source, at)) {
-            trace!(
-                target: target.as_str(),
-                "Cache hit"
-            );
             let msg = if res.ast.is_none() {
                 "ERR".red().bold()
             } else {

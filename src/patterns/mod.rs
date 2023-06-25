@@ -22,7 +22,7 @@ use crate::{
     arr,
     bootstrap::rules::{Alternatives, Whitespace},
     errors::Expected,
-    log::log_with_highlight,
+    log::{log_with_highlight, target_line_column},
     parser::{ParseResult, Parser},
     rule, rule_ref, seq,
     syntax::token::Kind,
@@ -233,7 +233,8 @@ impl Parser for Pattern {
                 Pattern::Regex(regex::escape(text)).parse_at(source, at, context)
             }
             Pattern::Regex(r) => {
-                let target = format!("/{r}/@{at}");
+                let target =
+                    target_line_column(format!("/{}/", r.escape_default()).as_str(), at, source);
 
                 // Find length of whitespace characters sequence
                 let mut trivia_size = 0;

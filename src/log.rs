@@ -5,6 +5,23 @@ use log::{debug, log_enabled};
 
 use crate::parser::ParseResult;
 
+pub fn target_line_column(target: &str, at: usize, source: &str) -> String {
+    let mut line = 1;
+    let mut column = 1;
+    for (i, c) in source.chars().enumerate() {
+        if i == at {
+            break;
+        }
+        if c == '\n' {
+            line += 1;
+            column = 1;
+        } else {
+            column += 1;
+        }
+    }
+    format!("{}:{}:{}", target, line, column)
+}
+
 pub fn log_result(target: &str, at: usize, source: &str, result: &ParseResult) {
     if log_enabled!(log::Level::Debug) {
         if result.ast.is_none() {
