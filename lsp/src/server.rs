@@ -1,4 +1,3 @@
-use crate::Token;
 use dashmap::DashMap;
 use dp::parser::{ParseResult, Parser};
 use dp::Context;
@@ -191,7 +190,7 @@ impl LanguageServer for Server {
         let mut tokens = Vec::new();
         let mut prev_range = Range::new(Position::new(0, 0), Position::new(0, 0));
         for token in result.syntax.tokens() {
-            let range = rope.lsp_range(token.clone());
+            let range = rope.lsp_range(token.range.clone());
             tokens.push(SemanticToken {
                 delta_line: range.start.line - prev_range.start.line,
                 delta_start: if range.start.line == prev_range.start.line {
@@ -199,9 +198,8 @@ impl LanguageServer for Server {
                 } else {
                     range.start.character
                 },
-                length: token.len() as u32,
-                // TODO: get real token types
-                token_type: Token::Keyword as u32,
+                length: token.range.len() as u32,
+                token_type: token.kind.clone() as u32,
                 token_modifiers_bitset: 0,
             });
             prev_range = range;
