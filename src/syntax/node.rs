@@ -75,6 +75,11 @@ impl Node {
         Some(start..end)
     }
 
+    /// Get length of syntax
+    pub fn len(&self) -> usize {
+        self.range().map_or(0, |r| r.len())
+    }
+
     /// Add or change name of this syntax
     /// ```
     /// # use pretty_assertions::assert_eq;
