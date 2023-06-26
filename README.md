@@ -84,6 +84,7 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 	  * [x] RuleName as types
 	  * [ ] Make syntax highlighting smarter
 	  * [ ] More token subkinds like `keyword.text`, `operator.lparent`, etc.
+	  * [ ] Syntax highlight shouldn't be affected by errors
 * [ ] Add documentation
 * [ ] Simplify separated patterns
 * [ ] Add `#[derive(Rule)]`
@@ -95,3 +96,4 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 * [ ] Simplify rules
 * [ ] Remove ';' at end of rules
 * [ ] Use `xxx#tag` to add tags like token kinds to values
+* [ ] Fix left recursion

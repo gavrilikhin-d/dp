@@ -26,7 +26,7 @@ AtomicPattern
 	| Text;
 PatternInParentheses: '(' <pattern: Pattern> ')' => pattern;
 Named: '<' <name: Identifier> ':' <pattern: Pattern> '>';
-Identifier: /[a-z_][a-zA-Z_0-9]*/>;
+Identifier: /[a-z_][a-zA-Z_0-9]*/;
 RuleReference: <name: /[A-Z][a-zA-Z0-9]*/> => RuleReference(name);
 Regex: //[^/]+//;
 Text: Char | String | /[^\s*+?()|<:>{}=;]+/;
@@ -63,5 +63,5 @@ Value
 	| String
 	| Char
 	| Integer;
-Variable: <name: /[@a-z_][a-zA-Z_0-9]*/>> => Variable(name)
+Variable: <name: /[@a-z_][a-zA-Z_0-9]*/> => Variable(name)
 Integer: /[0-9]+/
