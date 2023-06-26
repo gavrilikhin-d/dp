@@ -471,3 +471,24 @@ fn expand() {
         json!({"Expand": { "Variable": "a"}})
     )
 }
+
+rule!(
+    struct AtomicExpression: {
+        alts!(
+            seq!('(' {expr: Expression} ')' => expr),
+            rule_ref!(Value),
+            rule_ref!(Variable)
+        )
+    }
+);
+#[test]
+fn atomic_expression() {
+    let mut context = Context::default();
+    let r = AtomicExpression::rule();
+    assert_eq!(r.parse("(1)", &mut context).ast.unwrap(), json!(1));
+    assert_eq!(r.parse("1", &mut context).ast.unwrap(), json!(1));
+    assert_eq!(
+        r.parse("a", &mut context).ast.unwrap(),
+        json!({"Variable": "a"})
+    );
+}

@@ -9,9 +9,10 @@ use serde_json::json;
 use crate::{
     action::Action,
     bootstrap::rules::{
-        Alternatives, AtomicPattern, Char, Comment, Distinct, DistinctObject, DistinctValue,
-        Expand, Identifier, Integer, NonEmptyObject, Object, Regex, Return, Root, RuleName,
-        RuleReference, Statement, Text, Throw, Type, Typename, Value, Variable, Whitespace,
+        Alternatives, AtomicExpression, AtomicPattern, Char, Comment, Distinct, DistinctObject,
+        DistinctValue, Expand, Identifier, Integer, NonEmptyObject, Object, Regex, Return, Root,
+        RuleName, RuleReference, Statement, Text, Throw, Type, Typename, Value, Variable,
+        Whitespace,
     },
     expressions::{
         ArrayConstructor, ArrayElement, Cast, FieldInitializer, Initializer, ObjectConstructor,
@@ -179,6 +180,7 @@ impl Default for Context {
             Comment::rule().into(),
             Statement::rule().into(),
             Whitespace::rule().into(),
+            AtomicExpression::rule().into(),
         ];
         rules.into_iter().for_each(|r| {
             ctx.add_rule(r);

@@ -47,12 +47,16 @@ FieldInitializer
 Expand: ... <expr: Expression> => Expand(expr);
 ArrayConstructor: '[' ']' | '[' ArrayElement (, ArrayElement)* ,? ']';
 ArrayElement: Expand | Expression;
-Expression: Cast | Variable | Value;
+Expression: Cast | AtomicExpression;
+AtomicExpression
+	: '(' <expr: Expression> ')' => expr
+	| Variable
+	| Value;
 Typename: /[A-Z][a-zA-Z0-9]*/;
 Type: Typename | Variable;
 Cast
-	: <expr: Value | Variable> as <ty: Type> => Cast { expr, ty }
-	| <ty: Typename> '(' <expr: Value | Variable> ')' => Cast { expr, ty };
+	: <expr: AtomicExpression> as <ty: Type> => Cast { expr, ty }
+	| <ty: Typename> '(' <expr: Expression> ')' => Cast { expr, ty };
 Value
 	: ObjectConstructor
 	| ArrayConstructor

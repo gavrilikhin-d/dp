@@ -2,7 +2,7 @@ use derive_more::From;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
-use crate::{alts, bootstrap::rules::Variable, errors::Error, rule, rule_ref};
+use crate::{alts, bootstrap::rules::AtomicExpression, errors::Error, rule};
 
 mod cast;
 pub use cast::*;
@@ -34,15 +34,7 @@ pub enum Expression {
     #[serde(untagged)]
     Value(Value),
 }
-rule!(
-    Expression: {
-        alts!(
-            rule_ref!(Cast),
-            rule_ref!(crate::bootstrap::rules::Value),
-            rule_ref!(Variable)
-        )
-    }
-);
+rule!(Expression: {alts!(Cast | AtomicExpression)});
 
 impl From<char> for Expression {
     fn from(value: char) -> Self {
