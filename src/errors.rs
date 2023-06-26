@@ -98,3 +98,16 @@ impl Diagnostic for CustomError {
         self.url.as_ref().map(|s| Box::new(s) as Box<dyn Display>)
     }
 }
+
+impl<S: Into<String>> From<S> for CustomError {
+    fn from(s: S) -> Self {
+        Self {
+            severity: Severity::Error,
+            message: s.into(),
+            code: None,
+            help: None,
+            labels: None,
+            url: None,
+        }
+    }
+}
