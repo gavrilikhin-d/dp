@@ -1,0 +1,28 @@
+ObjectConstructor: Object | DistinctObject;
+DistinctObject: <ty: Typename> <obj: Object> => obj as ty;
+Object: '{' '}' | '{' Initializer (, Initializer)* ,? '}';
+Initializer: FieldInitializer | Expand;
+FieldInitializer
+	: <name: Identifier> ':' <value: Expression>  => value as name
+	| <var: Identifier> => ((Variable(var)) as var);
+Expand: ... <expr: Expression> => Expand(expr);
+ArrayConstructor: '[' ']' | '[' ArrayElement (, ArrayElement)* ,? ']';
+ArrayElement: Expand | Expression;
+Expression: Cast | AtomicExpression;
+AtomicExpression
+	: '(' <expr: Expression> ')' => expr
+	| Variable
+	| Value;
+Typename: /[A-Z][a-zA-Z0-9]*/;
+Type: Typename | Variable;
+Cast
+	: <expr: AtomicExpression> as <ty: Type> => Cast { expr, ty }
+	| <ty: Typename> '(' <expr: Expression> ')' => Cast { expr, ty };
+Value
+	: ObjectConstructor
+	| ArrayConstructor
+	| String
+	| Char
+	| Integer;
+Variable: <name: /[@a-z_][a-zA-Z_0-9]*/> => Variable(name)
+Integer: /[0-9]+/

@@ -1,0 +1,2 @@
+Comment: "//" <text: /[^\n]*/> => Comment(text);
+Whitespace: /\s+/ | Comment;
