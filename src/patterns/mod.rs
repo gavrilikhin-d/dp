@@ -288,7 +288,7 @@ impl Parser for Pattern {
                 }
 
                 context.skip_whitespace = false;
-                trivia_size = Repeat::zero_or_more(rule_ref!(Whitespace))
+                trivia_size = rule_ref!(Whitespace)
                     .parse_at(source, at, context)
                     .syntax
                     .range()
