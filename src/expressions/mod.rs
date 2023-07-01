@@ -12,6 +12,9 @@ use crate::{
 mod cast;
 pub use cast::*;
 
+mod condition;
+pub use condition::*;
+
 mod object_constructor;
 pub use object_constructor::*;
 
@@ -29,6 +32,8 @@ pub enum Expression {
     Merge(Box<Expression>),
     /// A cast from one type to another
     Cast(Box<Cast>),
+    /// If-expression
+    If(Box<If>),
     /// An object constructor
     #[serde(untagged)]
     ObjectConstructor(ObjectConstructor),
@@ -39,7 +44,7 @@ pub enum Expression {
     #[serde(untagged)]
     Value(Value),
 }
-rule!(Expression: {alts!(Cast | AtomicExpression)});
+rule!(Expression: {alts!(Cast | If | AtomicExpression)});
 
 impl From<char> for Expression {
     fn from(value: char) -> Self {
@@ -86,6 +91,7 @@ impl Expression {
             }
             Expression::ObjectConstructor(oc) => oc.evaluate(variables),
             Expression::ArrayConstructor(ac) => ac.evaluate(variables),
+            Expression::If(check) => check.evaluate(variables),
         }
     }
 

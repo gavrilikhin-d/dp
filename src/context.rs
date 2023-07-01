@@ -9,13 +9,13 @@ use serde_json::json;
 use crate::{
     action::Action,
     bootstrap::rules::{
-        Alternatives, AtomicExpression, AtomicPattern, Char, Comment, Distinct, DistinctObject,
-        DistinctValue, Expand, Identifier, Integer, NonEmptyObject, Object, Regex, Return, Root,
-        RuleName, RuleReference, Statement, Text, Throw, Type, Typename, Value, Variable,
-        Whitespace,
+        Alternatives, AtomicExpression, AtomicPattern, Boolean, Char, Comment, Distinct,
+        DistinctObject, DistinctValue, Expand, Identifier, Integer, NonEmptyObject, Object, Regex,
+        Return, Root, RuleName, RuleReference, Statement, Text, Throw, Type, Typename, Value,
+        Variable, Whitespace,
     },
     expressions::{
-        ArrayConstructor, ArrayElement, Cast, FieldInitializer, Initializer, ObjectConstructor,
+        ArrayConstructor, ArrayElement, Cast, FieldInitializer, If, Initializer, ObjectConstructor,
     },
     parser,
     patterns::{Named, Repeat, Sequence},
@@ -200,6 +200,11 @@ impl Default for Context {
             Statement::rule().into(),
             Whitespace::rule().into(),
             AtomicExpression::rule().into(),
+            If::rule().into(),
+            RuleWithAction::new(Boolean::rule(), |_, ast, _| {
+                let value = ast == json!("true");
+                json!(value)
+            }),
         ];
         rules.into_iter().for_each(|r| {
             ctx.add_rule(r);

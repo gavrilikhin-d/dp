@@ -214,12 +214,22 @@ fn ty() {
     );
 }
 
+rule!(struct Boolean: {alts!("true", "false")});
+#[test]
+fn boolean() {
+    let mut context = Context::default();
+    let r = Boolean::rule();
+    assert_eq!(r.parse("true", &mut context).ast.unwrap(), json!(true));
+    assert_eq!(r.parse("false", &mut context).ast.unwrap(), json!(false));
+}
+
 rule!(
     struct Value: {
         alts!(
             DistinctValue |
             Char |
             String |
+            Boolean |
             Integer |
             ObjectConstructor |
             ArrayConstructor
@@ -493,6 +503,8 @@ fn atomic_expression() {
     let r = AtomicExpression::rule();
     assert_eq!(r.parse("(1)", &mut context).ast.unwrap(), json!(1));
     assert_eq!(r.parse("1", &mut context).ast.unwrap(), json!(1));
+    assert_eq!(r.parse("true", &mut context).ast.unwrap(), json!(true));
+    assert_eq!(r.parse("false", &mut context).ast.unwrap(), json!(false));
     assert_eq!(
         r.parse("a", &mut context).ast.unwrap(),
         json!({"Variable": "a"})
