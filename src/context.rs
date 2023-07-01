@@ -161,7 +161,12 @@ impl Default for Context {
             Sequence::rule().into(),
             Repeat::rule().into(),
             AtomicPattern::rule().into(),
-            Named::rule().into(),
+            RuleWithAction::new(Named::rule(), |syntax, ast, _| {
+                let token = syntax["name"].as_token_mut();
+                token.kind = token::Kind::Parameter;
+                token.modifiers.push(token::Modifier::Definition);
+                ast
+            }),
             Identifier::rule().into(),
             NonEmptyObject::rule().into(),
             Object::rule().into(),
@@ -178,7 +183,7 @@ impl Default for Context {
                 ast
             }),
             RuleWithAction::new(Variable::rule(), |syntax, ast, _| {
-                // syntax["name"].as_token_mut().kind = token::Kind::Parameter;
+                syntax["name"].as_token_mut().kind = token::Kind::Parameter;
                 ast
             }),
             DistinctObject::rule().into(),
@@ -358,8 +363,7 @@ mod test {
         let res = r.parse("x", &mut ctx);
         assert_eq!(
             res.syntax,
-            // FIXME: Kind::Parameter
-            Node::named("Variable", Node::named("name", (Kind::Keyword, 0..1)))
+            Node::named("Variable", Node::named("name", (Kind::Parameter, 0..1)))
         );
         assert_eq!(res.ast.unwrap(), json!({ "Variable": "x" }));
     }

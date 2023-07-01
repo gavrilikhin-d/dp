@@ -229,7 +229,10 @@ impl Index<&str> for Node {
 
     fn index(&self, index: &str) -> &Self::Output {
         match self {
-            Self::Named { node, .. } => &node[index],
+            Self::Named { node, .. } => match node.as_ref() {
+                Self::Named { name, node } if name == index => node.as_ref(),
+                _ => &node[index],
+            },
             Self::Unnamed(children) => &children
                 .iter()
                 .find(|c| c.name() == Some(index))
@@ -247,7 +250,16 @@ impl Index<&str> for Node {
 impl IndexMut<&str> for Node {
     fn index_mut(&mut self, index: &str) -> &mut Self::Output {
         match self {
-            Self::Named { node, .. } => &mut node[index],
+            Self::Named { node, .. } => {
+                if node.name() == Some(index) {
+                    match node.as_mut() {
+                        Self::Named { node, .. } => node.as_mut(),
+                        _ => unreachable!(),
+                    }
+                } else {
+                    &mut node[index]
+                }
+            }
             Self::Unnamed(children) => children
                 .iter_mut()
                 .find(|c| c.name() == Some(index))

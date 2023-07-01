@@ -80,7 +80,7 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 	  * [x] Strings
 	  * [x] Numbers
 	  * [x] Special symbols as operators or punctuators
-	  * [ ] Variables as identifiers
+	  * [x] Variables as identifiers (parameter)
 	  * [x] RuleName as types
 	  * [ ] Make syntax highlighting smarter
 	  * [ ] More token subkinds like `keyword.text`, `operator.lparent`, etc.

@@ -200,7 +200,7 @@ impl LanguageServer for Server {
                 },
                 length: token.range.len() as u32,
                 token_type: token.kind.clone() as u32,
-                token_modifiers_bitset: 0,
+                token_modifiers_bitset: token.modifiers.iter().map(|t| t.clone() as u32).sum(),
             });
             prev_range = range;
         }

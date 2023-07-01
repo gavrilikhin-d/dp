@@ -16,7 +16,7 @@ pub enum Kind {
 /// Modifier for token
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Modifier {
-    Definition,
+    Definition = 1,
 }
 
 /// Token in the syntax tree
