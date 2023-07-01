@@ -7,11 +7,15 @@ use serde_json::json;
 
 use crate::{
     action::merge,
-    alts, cast, expr,
+    alts, cast,
+    errors::RuleNameNotCapitalized,
+    expr,
     expressions::{ArrayConstructor, Initializer, ObjectConstructor},
     obj,
     patterns::{separated, Named, Repeat, Sequence},
-    rule, rule_ref, seq, Expression, Pattern, Rule,
+    rule, rule_ref, seq,
+    syntax::Node,
+    Expression, Pattern, Rule,
 };
 
 // ====================================
@@ -139,12 +143,14 @@ fn rule_name() {
     assert_eq!(res.ast, Some(json!(null)));
     assert_eq!(
         res.syntax,
-        vec![
-            // FIXME: Kind::Type
-            crate::syntax::Node::from((Kind::Keyword, 0..4)).with_name("name"),
-            crate::errors::RuleNameNotCapitalized { at: 0..4 }.into()
-        ]
-        .into()
+        Node::named(
+            "RuleName",
+            vec![
+                // FIXME: Kind::Type
+                Node::from((Kind::Keyword, 0..4)).with_name("name"),
+                RuleNameNotCapitalized { at: 0..4 }.into()
+            ]
+        )
     )
 }
 

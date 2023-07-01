@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::{Index, IndexMut, Range};
 
 use derive_more::From;
 
@@ -142,10 +142,22 @@ impl Node {
         let name = name.into();
         match self {
             Self::Named { node, .. } => Self::Named { name, node },
+            Self::Unnamed(children) if children.len() == 1 => Self::Named {
+                name,
+                node: Box::new(children.into_iter().next().unwrap()),
+            },
             _ => Self::Named {
                 name,
                 node: Box::new(self),
             },
+        }
+    }
+
+    /// Create named node
+    pub fn named(name: impl Into<String>, node: impl Into<Node>) -> Self {
+        Self::Named {
+            name: name.into(),
+            node: Box::new(node.into()),
         }
     }
 
@@ -158,6 +170,22 @@ impl Node {
     pub fn has_errors(&self) -> bool {
         self.errors().next().is_some()
     }
+
+    /// Unwrap this node as token
+    pub fn as_token_mut(&mut self) -> &mut Token {
+        match self {
+            Self::Token(token) => token,
+            _ => panic!("node is not a token"),
+        }
+    }
+
+    /// Get name of this node, if any
+    pub fn name(&self) -> Option<&str> {
+        match self {
+            Self::Named { name, .. } => Some(name),
+            _ => None,
+        }
+    }
 }
 
 impl<E: Into<Error>> From<E> for Node {
@@ -169,5 +197,67 @@ impl<E: Into<Error>> From<E> for Node {
 impl From<(token::Kind, Range<usize>)> for Node {
     fn from(value: (token::Kind, Range<usize>)) -> Self {
         Self::Token(value.into())
+    }
+}
+
+impl Index<usize> for Node {
+    type Output = Node;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match self {
+            Self::Named { node, .. } => &node[index],
+            Self::Unnamed(children) => &children[index],
+            Self::Token(_) => panic!("Cannot index token"),
+            Self::Error(_) => panic!("Cannot index error"),
+        }
+    }
+}
+
+impl IndexMut<usize> for Node {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match self {
+            Self::Named { node, .. } => &mut node[index],
+            Self::Unnamed(children) => &mut children[index],
+            Self::Token(_) => panic!("Cannot index token"),
+            Self::Error(_) => panic!("Cannot index error"),
+        }
+    }
+}
+
+impl Index<&str> for Node {
+    type Output = Node;
+
+    fn index(&self, index: &str) -> &Self::Output {
+        match self {
+            Self::Named { node, .. } => &node[index],
+            Self::Unnamed(children) => &children
+                .iter()
+                .find(|c| c.name() == Some(index))
+                .map(|n| match n {
+                    Node::Named { node, .. } => node,
+                    _ => unreachable!(),
+                })
+                .unwrap(),
+            Self::Token(_) => panic!("Cannot index token"),
+            Self::Error(_) => panic!("Cannot index error"),
+        }
+    }
+}
+
+impl IndexMut<&str> for Node {
+    fn index_mut(&mut self, index: &str) -> &mut Self::Output {
+        match self {
+            Self::Named { node, .. } => &mut node[index],
+            Self::Unnamed(children) => children
+                .iter_mut()
+                .find(|c| c.name() == Some(index))
+                .map(|n| match n {
+                    Node::Named { node, .. } => node,
+                    _ => unreachable!(),
+                })
+                .unwrap(),
+            Self::Token(_) => panic!("Cannot index token"),
+            Self::Error(_) => panic!("Cannot index error"),
+        }
     }
 }

@@ -332,7 +332,7 @@ mod test {
         errors::Expected,
         parser::{ParseResult, Parser},
         patterns::Named,
-        syntax::{self, token::Kind},
+        syntax::{self, token::Kind, Node},
         Context, Pattern,
     };
 
@@ -436,7 +436,7 @@ mod test {
         assert_eq!(
             pattern.parse("abc", &mut context),
             ParseResult {
-                syntax: (Kind::Keyword, 0..3).into(),
+                syntax: Node::from((Kind::Keyword, 0..3)).with_name("Text"),
                 ast: Some(json!("abc"))
             }
         )

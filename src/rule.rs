@@ -112,6 +112,8 @@ impl Parser for Rule {
         log_result(target.as_str(), at, source, &result);
         self.using_call_depth(|depth| *depth -= 1);
 
+        result.syntax = result.syntax.with_name(self.name.clone());
+
         if result.ast.is_some() {
             // single unnamed -> transparent
             // has action -> transparent
@@ -132,7 +134,11 @@ impl Parser for Rule {
                         target: target.as_str(),
                         "Calling {}", "on_parsed".bold()
                     );
-                    result.ast = Some(on_parsed(result.ast.unwrap().take(), context));
+                    result.ast = Some(on_parsed(
+                        &mut result.syntax,
+                        result.ast.unwrap().take(),
+                        context,
+                    ));
                 }
             }
         }

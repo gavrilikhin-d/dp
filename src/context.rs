@@ -19,15 +19,23 @@ use crate::{
     },
     parser,
     patterns::{Named, Repeat, Sequence},
+    syntax::{self, token},
     Expression, Pattern, Rule, UnderlyingRule,
 };
 
 /// Action to be executed after parsing
-pub type OnParsedAction =
-    for<'c> fn(ast: serde_json::Value, context: &'c mut Context) -> serde_json::Value;
+pub type OnParsedAction = for<'c> fn(
+    syntax: &mut syntax::Node,
+    ast: serde_json::Value,
+    context: &'c mut Context,
+) -> serde_json::Value;
 
 /// Helper function to make a rule transparent and remove quotes
-fn without_quotes(ast: serde_json::Value, _: &mut Context) -> serde_json::Value {
+fn without_quotes(
+    _: &mut syntax::Node,
+    ast: serde_json::Value,
+    _: &mut Context,
+) -> serde_json::Value {
     let s = ast.as_str().unwrap();
     json!(s[1..s.len() - 1])
 }
@@ -124,7 +132,7 @@ impl Default for Context {
         let rules = vec![
             Root::rule().into(),
             RuleWithAction::new(Char::rule(), without_quotes),
-            RuleWithAction::new(Integer::rule(), |ast, _| {
+            RuleWithAction::new(Integer::rule(), |_, ast, _| {
                 let str = ast.as_str().unwrap();
                 if let Ok(i) = str.parse::<i64>() {
                     return i.into();
@@ -138,7 +146,7 @@ impl Default for Context {
             RuleName::rule().into(),
             RuleReference::rule().into(),
             Pattern::rule().into(),
-            RuleWithAction::new(Alternatives::rule(), |mut ast, _| {
+            RuleWithAction::new(Alternatives::rule(), |_, mut ast, _| {
                 let alts = ast.as_array_mut().unwrap();
                 let mut alts = alts.iter().map(|a| a.get("x").unwrap());
                 if alts.len() == 1 {
@@ -164,12 +172,15 @@ impl Default for Context {
             Expression::rule().into(),
             Value::rule().into(),
             FieldInitializer::rule().into(),
-            RuleWithAction::new(Rule::rule(), |ast, context| {
+            RuleWithAction::new(Rule::rule(), |_, ast, context| {
                 let rule: Rule = serde_json::from_value(ast.get("Rule").unwrap().clone()).unwrap();
                 context.add_rule(rule.into());
                 ast
             }),
-            Variable::rule().into(),
+            RuleWithAction::new(Variable::rule(), |syntax, ast, _| {
+                // syntax["name"].as_token_mut().kind = token::Kind::Parameter;
+                ast
+            }),
             DistinctObject::rule().into(),
             DistinctValue::rule().into(),
             Distinct::rule().into(),
@@ -206,7 +217,7 @@ mod test {
 
     use crate::{
         bootstrap::rules::Root,
-        errors::Expected,
+        errors::{Expected, RuleNameNotCapitalized},
         parser::Parser,
         rule, source_id,
         syntax::{token::Kind, Node},
@@ -344,10 +355,13 @@ mod test {
         let mut ctx = Context::default();
         let r = ctx.find_rule("Variable").unwrap();
         assert_eq!(r.name, "Variable");
+        let res = r.parse("x", &mut ctx);
         assert_eq!(
-            r.parse("x", &mut ctx).ast.unwrap(),
-            json!({ "Variable": "x" })
+            res.syntax,
+            // FIXME: Kind::Parameter
+            Node::named("Variable", Node::named("name", (Kind::Keyword, 0..1)))
         );
+        assert_eq!(res.ast.unwrap(), json!({ "Variable": "x" }));
     }
 
     #[test]
@@ -385,11 +399,14 @@ mod test {
         assert_eq!(rule_name.parse("Foo", &mut ctx).ast.unwrap(), json!("Foo"));
         assert_eq!(
             rule_name.parse("foo", &mut ctx).syntax,
-            vec![
-                // FIXME: Kind::Type
-                crate::syntax::Node::from((Kind::Keyword, 0..3)).with_name("name"),
-                crate::errors::RuleNameNotCapitalized { at: 0..3 }.into()
-            ]
+            // FIXME: Kind::Type
+            Node::named(
+                "RuleName",
+                vec![
+                    Node::named("name", (Kind::Keyword, 0..3)),
+                    RuleNameNotCapitalized { at: 0..3 }.into()
+                ]
+            )
             .into()
         );
         assert_eq!(
@@ -398,7 +415,7 @@ mod test {
                 expected: "[a-z_][a-zA-Z0-9_]*".into(),
                 at: 0
             })
-            .with_name("name")
+            .with_name("RuleName")
         );
     }
 
