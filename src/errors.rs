@@ -31,6 +31,13 @@ pub struct RuleNameNotCapitalized {
     pub at: Range<usize>,
 }
 
+#[derive(Debug, Error, Diagnostic, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[error("variable {name:?} is undefined")]
+pub struct UndefinedVariable {
+    /// Name of the variable
+    pub name: String,
+}
+
 /// Helper macro to create error enumeration
 macro_rules! error_enum {
 	($($name:ident),*) => {
@@ -50,6 +57,7 @@ error_enum!(
     Expected,
     ExpectedRuleName,
     RuleNameNotCapitalized,
+    UndefinedVariable,
     CustomError
 );
 

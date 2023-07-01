@@ -2,7 +2,12 @@ use derive_more::From;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
-use crate::{alts, bootstrap::rules::AtomicExpression, errors::Error, rule};
+use crate::{
+    alts,
+    bootstrap::rules::AtomicExpression,
+    errors::{Error, UndefinedVariable},
+    rule,
+};
 
 mod cast;
 pub use cast::*;
@@ -71,7 +76,7 @@ impl Expression {
             Expression::Variable(name) => {
                 let value = variables
                     .get(name)
-                    .expect(format!("Variable {:?} not found", name).as_str());
+                    .ok_or_else(|| UndefinedVariable { name: name.clone() })?;
                 Ok(value.clone())
             }
             Expression::Cast(cast) => {
@@ -106,11 +111,13 @@ impl Expression {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
+    use serde_json::{json, Map};
 
     use pretty_assertions::assert_eq;
 
-    use crate::{parser::Parser, Context, Expression, UnderlyingRule};
+    use crate::{
+        errors::UndefinedVariable, expr, parser::Parser, Context, Expression, UnderlyingRule,
+    };
 
     #[test]
     fn expression() {
@@ -130,5 +137,16 @@ mod test {
                 }
             })
         );
+    }
+
+    #[test]
+    fn undefined_variable() {
+        assert_eq!(
+            expr!(var).evaluate(&Map::new()),
+            Err(UndefinedVariable {
+                name: "var".to_string(),
+            }
+            .into())
+        )
     }
 }
