@@ -31,6 +31,16 @@ impl Node {
         }
     }
 
+    /// Iterate over mutable tokens
+    pub fn tokens_mut(&mut self) -> Box<dyn Iterator<Item = &mut Token> + '_> {
+        match self {
+            Self::Token(t) => Box::new(std::iter::once(t)),
+            Self::Named { node, .. } => node.tokens_mut(),
+            Self::Unnamed(children) => Box::new(children.iter_mut().flat_map(|n| n.tokens_mut())),
+            Self::Error(_) => Box::new(std::iter::empty()),
+        }
+    }
+
     /// Iterate over errors
     pub fn errors(&self) -> Box<dyn Iterator<Item = &Error> + '_> {
         match self {

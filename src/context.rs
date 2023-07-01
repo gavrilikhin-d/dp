@@ -167,7 +167,10 @@ impl Default for Context {
                 token.modifiers.push(token::Modifier::Definition);
                 ast
             }),
-            Identifier::rule().into(),
+            RuleWithAction::new(Identifier::rule(), |syntax, ast, _| {
+                syntax.tokens_mut().next().unwrap().kind = token::Kind::Parameter;
+                ast
+            }),
             NonEmptyObject::rule().into(),
             Object::rule().into(),
             ObjectConstructor::rule().into(),
