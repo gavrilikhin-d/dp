@@ -97,3 +97,5 @@ To debug library itself call with env `RUST_LOG=debug` or `RUST_LOG=trace`
 * [ ] Remove ';' at end of rules
 * [ ] Use `xxx#tag` to add tags like token kinds to values
 * [ ] Fix left recursion
+* [ ] Make adding rules to context automatic
+* [ ] Support code blocks in actions

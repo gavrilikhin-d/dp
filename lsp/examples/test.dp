@@ -1,2 +1,1 @@
-// comment
-X: x
+X: <var: /[a-z]*/> => ((Variable(var)) as var)
