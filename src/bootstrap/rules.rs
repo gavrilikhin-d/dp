@@ -25,7 +25,7 @@ use crate::{
 
 rule!(
     struct Root:
-        "/^/" {stmts: Repeat::zero_or_more(rule_ref!(Statement))} "/$/" => stmts
+        "/^/" {stmts: Repeat::zero_or_more(rule_ref!(Declaration))} "/$/" => stmts
 );
 #[test]
 fn root() {
@@ -48,11 +48,11 @@ fn whitespace() {
     assert_eq!(r.parse(" \t ", &mut context).ast.unwrap(), json!(" \t "));
 }
 
-rule!(struct Statement: Rule);
+rule!(struct Declaration: Rule);
 #[test]
-fn statement() {
+fn declaration() {
     let mut context = Context::default();
-    let r = Statement::rule();
+    let r = Declaration::rule();
     rule!(struct R: "x");
     assert_eq!(
         r.parse("R: x", &mut context).ast.unwrap(),
